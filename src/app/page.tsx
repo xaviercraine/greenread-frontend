@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function HomePage() {
@@ -18,7 +19,12 @@ export default function HomePage() {
       <nav className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-green-700">Greenread</h1>
+            <div className="flex items-center gap-6">
+              <h1 className="text-xl font-bold text-green-700">Greenread</h1>
+              <Link href="/onboarding" className="text-sm font-medium text-gray-600 hover:text-green-700">
+                Onboarding
+              </Link>
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">{user?.email}</span>
               <button
