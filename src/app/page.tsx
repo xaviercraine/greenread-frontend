@@ -1,12 +1,191 @@
 "use client";
 
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
+import NavBar from "@/components/NavBar";
+import SummaryCards from "@/components/dashboard/SummaryCards";
+import BookingTable, {
+  type Booking,
+  type PricingSnapshot,
+} from "@/components/dashboard/BookingTable";
+import BookingDetail from "@/components/dashboard/BookingDetail";
 
 export default function HomePage() {
-  const { user, loading, courseId, signOut } = useAuth();
+  const { user, loading: authLoading, courseId } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
 
-  if (loading) {
+  // Summary state
+  const [totalBookings, setTotalBookings] = useState<number | null>(null);
+  const [upcomingBookings, setUpcomingBookings] = useState<number | null>(null);
+  const [confirmedRevenue, setConfirmedRevenue] = useState<number | null>(null);
+  const [escalatedCount, setEscalatedCount] = useState<number | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Bookings state
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pricingMap, setPricingMap] = useState<Map<string, PricingSnapshot>>(
+    new Map()
+  );
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const fetchSummary = useCallback(async () => {
+    if (!courseId) return;
+    setSummaryLoading(true);
+    setSummaryError(null);
+
+    // Total bookings (non-cancelled)
+    try {
+      const { count: total, error: totalErr } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("course_id", courseId)
+        .neq("status", "cancelled");
+      setTotalBookings(totalErr ? 0 : (total ?? 0));
+    } catch {
+      setTotalBookings(0);
+    }
+
+    // Upcoming
+    try {
+      const { count: upcoming, error: upcomingErr } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("course_id", courseId)
+        .gte("date", today)
+        .neq("status", "cancelled");
+      setUpcomingBookings(upcomingErr ? 0 : (upcoming ?? 0));
+    } catch {
+      setUpcomingBookings(0);
+    }
+
+    // Escalated conversations
+    try {
+      const { count: escalated, error: escalatedErr } = await supabase
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("course_id", courseId)
+        .eq("status", "escalated");
+      setEscalatedCount(escalatedErr ? 0 : (escalated ?? 0));
+    } catch {
+      setEscalatedCount(0);
+    }
+
+    // Revenue: get confirmed booking IDs, then sum latest snapshots
+    try {
+      const confirmedStatuses = [
+        "deposit_paid",
+        "balance_paid",
+        "confirmed",
+        "completed",
+      ];
+      const { data: confirmedBookings, error: confirmedErr } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("course_id", courseId)
+        .in("status", confirmedStatuses);
+
+      let revenue = 0;
+      if (!confirmedErr && confirmedBookings && confirmedBookings.length > 0) {
+        const bookingIds = confirmedBookings.map((b) => b.id);
+        const { data: snapshots, error: snapErr } = await supabase
+          .from("pricing_snapshots")
+          .select("booking_id, total, created_at")
+          .in("booking_id", bookingIds)
+          .order("created_at", { ascending: false });
+
+        if (!snapErr && snapshots) {
+          const latestByBooking = new Map<string, number>();
+          for (const s of snapshots) {
+            if (!latestByBooking.has(s.booking_id)) {
+              latestByBooking.set(s.booking_id, s.total);
+            }
+          }
+          for (const val of latestByBooking.values()) {
+            revenue += val;
+          }
+        }
+      }
+      setConfirmedRevenue(revenue);
+    } catch {
+      setConfirmedRevenue(0);
+    }
+
+    setSummaryLoading(false);
+  }, [courseId, supabase, today]);
+
+  const fetchBookings = useCallback(async () => {
+    if (!courseId) return;
+    setBookingsLoading(true);
+    setBookingsError(null);
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*, tournament_formats(name)")
+        .eq("course_id", courseId)
+        .order("date", { ascending: true });
+      if (error) throw error;
+
+      const rows = (data ?? []) as Booking[];
+      setBookings(rows);
+
+      // Fetch latest pricing snapshot for each booking
+      if (rows.length > 0) {
+        const ids = rows.map((b) => b.id);
+        const { data: snapshots, error: snapErr } = await supabase
+          .from("pricing_snapshots")
+          .select("*")
+          .in("booking_id", ids)
+          .order("created_at", { ascending: false });
+        if (snapErr) throw snapErr;
+
+        const map = new Map<string, PricingSnapshot>();
+        if (snapshots) {
+          for (const s of snapshots as PricingSnapshot[]) {
+            if (!map.has(s.booking_id)) {
+              map.set(s.booking_id, s);
+            }
+          }
+        }
+        setPricingMap(map);
+      } else {
+        setPricingMap(new Map());
+      }
+    } catch (err) {
+      setBookingsError(
+        err instanceof Error ? err.message : "Failed to load bookings"
+      );
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [courseId, supabase]);
+
+  useEffect(() => {
+    if (!authLoading && courseId) {
+      fetchSummary();
+      fetchBookings();
+    }
+  }, [authLoading, courseId, fetchSummary, fetchBookings]);
+
+  const handleCancelDraft = async (bookingId: string) => {
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("id", bookingId)
+      .eq("status", "draft");
+    if (error) throw error;
+    setSelectedBooking(null);
+    fetchSummary();
+    fetchBookings();
+  };
+
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
@@ -14,40 +193,45 @@ export default function HomePage() {
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold text-green-700">Greenread</h1>
-              <Link href="/onboarding" className="text-sm font-medium text-gray-600 hover:text-green-700">
-                Onboarding
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{user?.email}</span>
-              <button
-                onClick={signOut}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
-          <p className="mt-2 text-gray-600">
-            Course ID: {courseId ?? "Not assigned"}
-          </p>
-          <p className="mt-1 text-gray-600">
-            Logged in as: {user?.email}
-          </p>
-        </div>
+      <NavBar escalatedCount={escalatedCount ?? 0} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <SummaryCards
+          totalBookings={totalBookings}
+          upcomingBookings={upcomingBookings}
+          confirmedRevenue={confirmedRevenue}
+          escalatedCount={escalatedCount}
+          loading={summaryLoading}
+          error={summaryError}
+          onRetry={fetchSummary}
+        />
+
+        <BookingTable
+          bookings={bookings}
+          pricingMap={pricingMap}
+          loading={bookingsLoading}
+          error={bookingsError}
+          onRetry={fetchBookings}
+          selectedFilter={selectedFilter}
+          onFilterChange={setSelectedFilter}
+          onSelectBooking={setSelectedBooking}
+        />
       </main>
+
+      {selectedBooking && (
+        <BookingDetail
+          booking={selectedBooking}
+          snapshot={pricingMap.get(selectedBooking.id) ?? null}
+          onClose={() => setSelectedBooking(null)}
+          onCancelDraft={handleCancelDraft}
+        />
+      )}
     </div>
   );
 }
