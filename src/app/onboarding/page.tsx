@@ -8,6 +8,10 @@ import Step1CourseBasics from "@/components/onboarding/Step1CourseBasics";
 import Step2Nines from "@/components/onboarding/Step2Nines";
 import Step3Rotations from "@/components/onboarding/Step3Rotations";
 import Step4EventSpaces from "@/components/onboarding/Step4EventSpaces";
+import Step5Formats from "@/components/onboarding/Step5Formats";
+import Step6FBPackages from "@/components/onboarding/Step6FBPackages";
+import Step7Addons from "@/components/onboarding/Step7Addons";
+import Step8Revenue from "@/components/onboarding/Step8Revenue";
 
 const STEP_LABELS = [
   "Course",
@@ -20,7 +24,7 @@ const STEP_LABELS = [
   "Revenue",
 ];
 
-const MAX_STEP = 4;
+const MAX_STEP = 8;
 
 export default function OnboardingPage() {
   const { user, loading, courseId, signOut } = useAuth();
@@ -75,6 +79,14 @@ export default function OnboardingPage() {
         return <Step3Rotations courseId={courseId} />;
       case 4:
         return <Step4EventSpaces courseId={courseId} />;
+      case 5:
+        return <Step5Formats courseId={courseId} />;
+      case 6:
+        return <Step6FBPackages courseId={courseId} />;
+      case 7:
+        return <Step7Addons courseId={courseId} />;
+      case 8:
+        return <Step8Revenue courseId={courseId} />;
       default:
         return null;
     }
