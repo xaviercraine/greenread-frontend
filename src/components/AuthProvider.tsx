@@ -45,6 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const courseId = user?.app_metadata?.course_id ?? null;
 
   const signOut = async () => {
+    try {
+      localStorage.removeItem('greenread_concierge_session');
+      localStorage.removeItem('greenread_concierge_messages');
+      localStorage.removeItem('greenread_concierge_conversation_id');
+    } catch {
+      // ignore
+    }
     await supabase.auth.signOut();
   };
 

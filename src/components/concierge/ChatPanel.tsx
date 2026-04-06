@@ -15,10 +15,11 @@ type Message = {
 const SESSION_KEY = "greenread_concierge_session";
 const MESSAGES_KEY = "greenread_concierge_messages";
 const CONVERSATION_KEY = "greenread_concierge_conversation_id";
+const OPEN_KEY = "greenread_concierge_open";
 
 export default function ChatPanel() {
   const pathname = usePathname();
-  const { courseId } = useAuth();
+  const { user, courseId } = useAuth();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,12 +38,14 @@ export default function ChatPanel() {
       const storedSession = localStorage.getItem(SESSION_KEY);
       const storedMessages = localStorage.getItem(MESSAGES_KEY);
       const storedConv = localStorage.getItem(CONVERSATION_KEY);
+      const storedOpen = localStorage.getItem(OPEN_KEY);
       if (storedSession) setSessionToken(storedSession);
       if (storedConv) setConversationId(storedConv);
       if (storedMessages) {
         const parsed = JSON.parse(storedMessages);
         if (Array.isArray(parsed)) setMessages(parsed);
       }
+      if (storedOpen === "true") setOpen(true);
     } catch {
       // ignore
     }
@@ -59,6 +62,16 @@ export default function ChatPanel() {
     }
   }, [messages, hydrated]);
 
+  // Persist open state
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(OPEN_KEY, open ? "true" : "false");
+    } catch {
+      // ignore
+    }
+  }, [open, hydrated]);
+
   // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
@@ -66,8 +79,8 @@ export default function ChatPanel() {
     }
   }, [messages, loading, open]);
 
-  const isHidden = pathname?.startsWith("/book/new");
-  if (isHidden) return null;
+  if (!user) return null;
+  if (pathname?.startsWith("/book/new")) return null;
 
   const sendMessage = async (text: string) => {
     setLoading(true);
@@ -155,7 +168,7 @@ export default function ChatPanel() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Open concierge chat"
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 hover:shadow-xl transition-all flex items-center justify-center text-2xl"
+        className="fixed bottom-6 right-6 z-[9999] h-14 w-14 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 hover:shadow-xl transition-all flex items-center justify-center text-2xl"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -174,7 +187,7 @@ export default function ChatPanel() {
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-50 h-screen w-[400px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-[9999] h-screen w-[400px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >

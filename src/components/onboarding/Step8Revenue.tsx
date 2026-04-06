@@ -55,6 +55,14 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
   const [simLoading, setSimLoading] = useState(false);
   const [simError, setSimError] = useState<string | null>(null);
   const [simResult, setSimResult] = useState<number | null>(null);
+  const [simElapsed, setSimElapsed] = useState(0);
+
+  const SIM_MESSAGES = [
+    "Analyzing course layout and nine configurations...",
+    "Calculating format capacities and rotation constraints...",
+    "Running tournament simulations across day types...",
+    "Generating constraint boundaries...",
+  ];
 
   const fetchThreshold = async () => {
     setThresholdLoading(true);
@@ -187,9 +195,19 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
     setSimLoading(true);
     setSimError(null);
     setSimResult(null);
-    const { data, error: err } = await supabase.rpc("run_simulation", {
-      p_course_id: courseId,
-    });
+    setSimElapsed(0);
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      setSimElapsed(Date.now() - startTime);
+    }, 100);
+
+    const rpcPromise = supabase.rpc("run_simulation", { p_course_id: courseId });
+    const minDelay = new Promise((resolve) => setTimeout(resolve, 12000));
+
+    const [rpcResult] = await Promise.all([rpcPromise, minDelay]);
+    clearInterval(interval);
+
+    const { data, error: err } = rpcResult;
     if (err) {
       setSimError(err.message);
     } else {
@@ -223,6 +241,9 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
           </div>
         ) : (
           <>
+            <p className="text-sm text-gray-600 mb-4">
+              The soft threshold determines when dynamic pricing activates. At 80%, once a day reaches 80% of its maximum tournament capacity, prices begin to increase. This encourages organizers to book on less busy days and maximizes your revenue on high-demand dates.
+            </p>
             <div className="flex items-center gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Soft Threshold (%)</label>
@@ -271,7 +292,10 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
 
       {/* Revenue Targets Section */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Revenue Targets</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Revenue Targets</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Revenue targets set your monthly income goals from tournaments. The system uses these to track actual bookings against your targets and flag months that need attention.
+        </p>
 
         {targetsLoading ? (
           <div className="flex items-center justify-center min-h-[100px]">
@@ -429,6 +453,9 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Running the simulation analyzes your course configuration — nines, formats, and capacity — to calculate the maximum number of tournaments and players each day type (weekday, weekend, holiday) can support. These constraint boundaries power the availability engine.
+            </p>
             {simError && (
               <div className="flex items-center gap-3">
                 <p className="text-red-600 text-sm">{simError}</p>
@@ -440,20 +467,35 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
                 </button>
               </div>
             )}
-            <button
-              onClick={handleRunSimulation}
-              disabled={simLoading}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700 disabled:opacity-50"
-            >
-              {simLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                  Running Simulation…
-                </span>
-              ) : (
-                "Complete Setup & Run Simulation"
-              )}
-            </button>
+            {simLoading ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-6 border border-green-200 rounded-lg bg-green-50">
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600" />
+                </div>
+                <div className="flex gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-600 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-600 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-600 animate-bounce" />
+                </div>
+                <p className="text-green-800 font-medium text-center px-6 transition-opacity duration-300">
+                  {SIM_MESSAGES[Math.min(Math.floor(simElapsed / 3000), SIM_MESSAGES.length - 1)]}
+                </p>
+                <div className="w-64 bg-green-200 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-green-600 transition-all duration-100"
+                    style={{ width: `${Math.min((simElapsed / 12000) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleRunSimulation}
+                disabled={simLoading}
+                className="px-8 py-3 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                Complete Setup & Run Simulation
+              </button>
+            )}
           </div>
         )}
       </div>

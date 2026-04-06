@@ -289,7 +289,7 @@ export default function RevenuePage() {
                             <span className="w-14 text-xs text-gray-500">
                               Target
                             </span>
-                            <div className="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+                            <div className="flex-1 bg-gray-100 rounded h-8 overflow-hidden">
                               <div
                                 className="h-full bg-gray-400"
                                 style={{ width: `${targetWidth}%` }}
@@ -300,7 +300,7 @@ export default function RevenuePage() {
                             <span className="w-14 text-xs text-gray-500">
                               Actual
                             </span>
-                            <div className="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+                            <div className="flex-1 bg-gray-100 rounded h-8 overflow-hidden">
                               <div
                                 className={`h-full ${
                                   onTarget ? "bg-green-500" : "bg-orange-500"

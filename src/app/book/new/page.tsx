@@ -14,7 +14,16 @@ import { useBooking } from "@/components/booking/BookingContext";
 
 export default function BookingPage() {
   const { user, loading, courseId } = useAuth();
-  const { state } = useBooking();
+  const { state, dispatch } = useBooking();
+
+  const handleStartOver = () => {
+    try {
+      sessionStorage.removeItem("greenread_booking");
+    } catch {
+      // ignore
+    }
+    dispatch({ type: "RESET" });
+  };
 
   if (loading) {
     return (
@@ -36,6 +45,16 @@ export default function BookingPage() {
     <div className="min-h-screen bg-white">
       <NavBar />
       <SummaryStrip />
+
+      <div className="max-w-7xl mx-auto px-8 pt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleStartOver}
+          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Start Over
+        </button>
+      </div>
 
       <main className="max-w-7xl mx-auto px-8 py-8">
         {state.step === 1 && <Screen1Setup courseId={courseId} />}

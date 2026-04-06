@@ -86,7 +86,7 @@ export default function CalendarGrid({
             return (
               <div
                 key={`empty-${idx}`}
-                className="h-28 border-b border-r border-gray-100 bg-gray-50"
+                className="min-h-[120px] border-b border-r border-gray-100 bg-gray-50"
               />
             );
           }
@@ -113,7 +113,7 @@ export default function CalendarGrid({
               key={dateString}
               type="button"
               onClick={() => onSelectDate(dateString)}
-              className={`h-28 p-2 text-left transition ${bgClass} ${borderClass} ${
+              className={`min-h-[120px] p-2 text-left transition ${bgClass} ${borderClass} ${
                 isPast ? "opacity-60" : ""
               }`}
             >

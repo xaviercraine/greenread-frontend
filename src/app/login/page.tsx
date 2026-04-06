@@ -8,7 +8,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -16,6 +18,24 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        setSuccess("Account created! You can now sign in.");
+        setIsSignUp(false);
+        setLoading(false);
+      }
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -36,7 +56,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div>
           <h1 className="text-3xl font-bold text-center text-gray-900">
-            Greenread
+            {isSignUp ? "Create Account" : "Greenread"}
           </h1>
           <p className="mt-2 text-center text-gray-600">
             Golf Tournament OS
@@ -46,6 +66,11 @@ export default function LoginPage() {
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+              {success}
             </div>
           )}
           <div>
@@ -80,8 +105,21 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (isSignUp ? "Signing up..." : "Signing in...") : isSignUp ? "Sign Up" : "Sign In"}
           </button>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+                setSuccess(null);
+              }}
+              className="text-sm text-green-600 hover:text-green-700"
+            >
+              {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -60,7 +60,7 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
                 href="/onboarding"
                 className="text-sm font-medium text-gray-700 hover:text-green-700"
               >
-                Onboarding
+                Course Setup
               </Link>
             </div>
           </div>

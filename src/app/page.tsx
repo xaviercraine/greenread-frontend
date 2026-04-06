@@ -201,7 +201,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <NavBar escalatedCount={escalatedCount ?? 0} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 min-h-[calc(100vh-64px)] flex flex-col">
         <SummaryCards
           totalBookings={totalBookings}
           upcomingBookings={upcomingBookings}
@@ -212,6 +212,7 @@ export default function HomePage() {
           onRetry={fetchSummary}
         />
 
+        <div className="flex-1 min-h-[600px]">
         <BookingTable
           bookings={bookings}
           pricingMap={pricingMap}
@@ -222,6 +223,7 @@ export default function HomePage() {
           onFilterChange={setSelectedFilter}
           onSelectBooking={setSelectedBooking}
         />
+        </div>
       </main>
 
       {selectedBooking && (
