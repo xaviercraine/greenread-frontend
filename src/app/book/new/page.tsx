@@ -5,6 +5,9 @@ import NavBar from "@/components/NavBar";
 import SummaryStrip from "@/components/booking/SummaryStrip";
 import Screen1Setup from "@/components/booking/Screen1Setup";
 import Screen2Dates from "@/components/booking/Screen2Dates";
+import Screen3FB from "@/components/booking/Screen3FB";
+import Screen4Space from "@/components/booking/Screen4Space";
+import Screen5Addons from "@/components/booking/Screen5Addons";
 import { useBooking } from "@/components/booking/BookingContext";
 
 export default function BookingPage() {
@@ -35,7 +38,10 @@ export default function BookingPage() {
       <main className="max-w-7xl mx-auto px-8 py-8">
         {state.step === 1 && <Screen1Setup courseId={courseId} />}
         {state.step === 2 && <Screen2Dates courseId={courseId} />}
-        {state.step >= 3 && state.step <= 7 && (
+        {state.step === 3 && <Screen3FB courseId={courseId} />}
+        {state.step === 4 && <Screen4Space courseId={courseId} />}
+        {state.step === 5 && <Screen5Addons courseId={courseId} />}
+        {state.step >= 6 && state.step <= 7 && (
           <div className="text-center py-20 text-gray-400 text-lg">
             Step {state.step} — Coming soon
           </div>
