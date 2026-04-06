@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface RevenueTarget {
   id: string;
@@ -49,6 +50,11 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
 
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Simulation
+  const [simLoading, setSimLoading] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
+  const [simResult, setSimResult] = useState<number | null>(null);
 
   const fetchThreshold = async () => {
     setThresholdLoading(true);
@@ -175,6 +181,21 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
     setEditBaseline(t.baseline_amount?.toString() ?? "");
     setEditGrowth(t.growth_target_pct?.toString() ?? "");
     setEditSource(t.source ?? "");
+  };
+
+  const handleRunSimulation = async () => {
+    setSimLoading(true);
+    setSimError(null);
+    setSimResult(null);
+    const { data, error: err } = await supabase.rpc("run_simulation", {
+      p_course_id: courseId,
+    });
+    if (err) {
+      setSimError(err.message);
+    } else {
+      setSimResult(data?.boundaries_written ?? 0);
+    }
+    setSimLoading(false);
   };
 
   if (thresholdLoading && targetsLoading) {
@@ -387,6 +408,53 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
               Add Revenue Target
             </button>
           </>
+        )}
+      </div>
+
+      {/* Complete Setup Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">Complete Setup</h2>
+
+        {simResult !== null ? (
+          <div className="space-y-4">
+            <p className="text-green-600 font-medium">
+              Simulation complete! {simResult} constraint boundaries generated.
+            </p>
+            <Link
+              href="/"
+              className="inline-block text-green-600 hover:text-green-700 font-medium"
+            >
+              Go to Dashboard &rarr;
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {simError && (
+              <div className="flex items-center gap-3">
+                <p className="text-red-600 text-sm">{simError}</p>
+                <button
+                  onClick={handleRunSimulation}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            <button
+              onClick={handleRunSimulation}
+              disabled={simLoading}
+              className="px-8 py-3 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {simLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                  Running Simulation…
+                </span>
+              ) : (
+                "Complete Setup & Run Simulation"
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>
