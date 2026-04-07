@@ -32,12 +32,28 @@ export default function Screen7Confirm({ courseId }: { courseId: string }) {
     setErrorMsg(null);
     setResult(null);
 
+    const fbParam = state.fbSelections.map((s) => ({
+      fb_package_id: s.fb_package_id,
+      headcount: s.headcount,
+    }));
+    const barParam = state.barSelections.map((s) => ({
+      bar_package_id: s.bar_package_id,
+      headcount: s.headcount,
+    }));
+    const addonParam = state.addonSelections.map((s) => ({
+      addon_id: s.addon_id,
+      quantity: s.quantity,
+    }));
+
     const { data, error } = await supabase.rpc("create_booking_draft_rpc", {
       p_course_id: courseId,
       p_format_id: state.formatId,
       p_date: state.selectedDate,
       p_player_count: state.playerCount,
       p_notes: null,
+      p_fb_selections: fbParam,
+      p_bar_selections: barParam,
+      p_addon_selections: addonParam,
     });
 
     if (error) {
@@ -46,7 +62,16 @@ export default function Screen7Confirm({ courseId }: { courseId: string }) {
       setResult(data as DraftResult);
     }
     setLoading(false);
-  }, [supabase, courseId, state.formatId, state.selectedDate, state.playerCount]);
+  }, [
+    supabase,
+    courseId,
+    state.formatId,
+    state.selectedDate,
+    state.playerCount,
+    state.fbSelections,
+    state.barSelections,
+    state.addonSelections,
+  ]);
 
   useEffect(() => {
     if (hasCalledRef.current) return;

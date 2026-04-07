@@ -170,72 +170,72 @@ export default function BookingDetail({
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Pricing Breakdown
             </h3>
-            {snapshot ? (
+            {snapshot?.snapshot ? (() => { const data = snapshot.snapshot; return (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Green Fees</span>
                   <span className="text-gray-900">
-                    ${snapshot?.green_fees?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                    ${data?.green_fees?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Cart Fees</span>
                   <span className="text-gray-900">
-                    ${snapshot?.cart_fees?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                    ${data?.cart_fees?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                   </span>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">F&B Total</span>
                     <span className="text-gray-900">
-                      ${snapshot?.fb_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.fb_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
-                  <LineItems items={snapshot?.fb_line_items ?? null} />
+                  <LineItems items={data?.fb_line_items ?? null} />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Bar Total</span>
                     <span className="text-gray-900">
-                      ${snapshot?.bar_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.bar_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
-                  <LineItems items={snapshot?.bar_line_items ?? null} />
+                  <LineItems items={data?.bar_line_items ?? null} />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Add-on Total</span>
                     <span className="text-gray-900">
-                      ${snapshot?.addon_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.addon_total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
-                  <LineItems items={snapshot?.addon_line_items ?? null} />
+                  <LineItems items={data?.addon_line_items ?? null} />
                 </div>
                 <div className="border-t border-gray-100 pt-2 mt-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="text-gray-900">
-                      ${snapshot?.subtotal?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.subtotal?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">HST</span>
                     <span className="text-gray-900">
-                      ${snapshot?.hst?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.hst?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold mt-1">
                     <span className="text-gray-900">Total</span>
                     <span className="text-gray-900">
-                      ${snapshot?.total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.total?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
                 </div>
-                {snapshot?.displacement_floor != null && (
+                {data?.displacement_floor != null && (
                   <div className="flex justify-between text-sm mt-2">
                     <span className="text-gray-500">Displacement Floor</span>
                     <span className="text-gray-700">
-                      ${snapshot?.displacement_floor?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
+                      ${data?.displacement_floor?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? '0.00'}
                     </span>
                   </div>
                 )}
@@ -255,7 +255,7 @@ export default function BookingDetail({
                   </div>
                 )}
               </div>
-            ) : (
+            ); })() : (
               <p className="text-sm text-gray-400">No pricing snapshot available</p>
             )}
           </div>

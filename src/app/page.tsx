@@ -93,18 +93,27 @@ export default function HomePage() {
 
       let revenue = 0;
       if (!confirmedErr && confirmedBookings && confirmedBookings.length > 0) {
-        const bookingIds = confirmedBookings.map((b) => b.id);
+        const confirmedIds = new Set(confirmedBookings.map((b) => b.id));
         const { data: snapshots, error: snapErr } = await supabase
           .from("pricing_snapshots")
-          .select("booking_id, total, created_at")
-          .in("booking_id", bookingIds)
+          .select("booking_id, snapshot, created_at")
+          .eq("course_id", courseId)
           .order("created_at", { ascending: false });
 
         if (!snapErr && snapshots) {
           const latestByBooking = new Map<string, number>();
-          for (const s of snapshots) {
+          for (const s of snapshots as Array<{
+            booking_id: string;
+            snapshot: { total?: number } | null;
+            created_at: string;
+          }>) {
+            if (!confirmedIds.has(s.booking_id)) continue;
             if (!latestByBooking.has(s.booking_id)) {
-              latestByBooking.set(s.booking_id, s.total);
+              const total = s.snapshot?.total;
+              latestByBooking.set(
+                s.booking_id,
+                typeof total === "number" ? total : 0
+              );
             }
           }
           for (const val of latestByBooking.values()) {
@@ -135,13 +144,13 @@ export default function HomePage() {
       const rows = (data ?? []) as Booking[];
       setBookings(rows);
 
-      // Fetch latest pricing snapshot for each booking
+      // Fetch latest pricing snapshot for each booking (filter by course,
+      // then group client-side — simple query PostgREST supports cleanly)
       if (rows.length > 0) {
-        const ids = rows.map((b) => b.id);
         const { data: snapshots, error: snapErr } = await supabase
           .from("pricing_snapshots")
-          .select("*")
-          .in("booking_id", ids)
+          .select("booking_id, snapshot, created_at")
+          .eq("course_id", courseId)
           .order("created_at", { ascending: false });
         if (snapErr) throw snapErr;
 

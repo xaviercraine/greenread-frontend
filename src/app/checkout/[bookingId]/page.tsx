@@ -86,10 +86,10 @@ export default function CheckoutPage() {
     try {
       const result = await callEdgeFunction("payment", {
         action: "create_checkout",
-        booking_id: bookingId,
-        course_id: booking.course_id,
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/success?booking_id=${bookingId}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/cancel?booking_id=${bookingId}`,
+        params: {
+          booking_id: bookingId,
+          course_id: booking.course_id,
+        },
       });
       if (!result?.checkout_url) {
         throw new Error("No checkout URL returned");

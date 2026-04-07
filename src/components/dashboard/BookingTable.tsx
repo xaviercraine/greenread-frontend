@@ -17,21 +17,24 @@ export interface Booking {
   tournament_formats: { name: string } | null;
 }
 
+export interface PricingSnapshotData {
+  total?: number;
+  green_fees?: number;
+  cart_fees?: number;
+  fb_total?: number;
+  bar_total?: number;
+  addon_total?: number;
+  subtotal?: number;
+  hst?: number;
+  displacement_floor?: number | null;
+  fb_line_items?: Record<string, unknown>[] | null;
+  bar_line_items?: Record<string, unknown>[] | null;
+  addon_line_items?: Record<string, unknown>[] | null;
+}
+
 export interface PricingSnapshot {
-  id: string;
   booking_id: string;
-  total: number;
-  green_fees: number;
-  cart_fees: number;
-  fb_total: number;
-  bar_total: number;
-  addon_total: number;
-  subtotal: number;
-  hst: number;
-  displacement_floor: number | null;
-  fb_line_items: Record<string, unknown>[] | null;
-  bar_line_items: Record<string, unknown>[] | null;
-  addon_line_items: Record<string, unknown>[] | null;
+  snapshot: PricingSnapshotData | null;
   created_at: string;
 }
 
@@ -241,8 +244,8 @@ export default function BookingTable({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      {snapshot?.total != null
-                        ? `$${snapshot.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                      {snapshot?.snapshot?.total != null
+                        ? `$${snapshot.snapshot.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
                         : "—"}
                     </td>
                     <td className="px-4 py-3 text-sm">
