@@ -11,6 +11,7 @@ import BookingTable, {
   type PricingSnapshot,
 } from "@/components/dashboard/BookingTable";
 import BookingDetail from "@/components/dashboard/BookingDetail";
+import EscalatedConversations from "@/components/dashboard/EscalatedConversations";
 
 export default function HomePage() {
   const { user, loading: authLoading, courseId } = useAuth();
@@ -326,6 +327,11 @@ export default function HomePage() {
           onSelectBooking={setSelectedBooking}
         />
         </div>
+
+        <EscalatedConversations
+          courseId={courseId}
+          onChange={fetchSummary}
+        />
       </main>
 
       {selectedBooking && (
