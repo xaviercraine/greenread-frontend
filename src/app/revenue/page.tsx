@@ -23,8 +23,40 @@ interface BookingRow {
 
 interface PricingSnapshotRow {
   booking_id: string;
-  snapshot: { total?: number } | null;
+  snapshot: {
+    total?: number;
+    green_fees?: number;
+    cart_cost?: number;
+    fb_total?: number;
+    bar_total?: number;
+    addon_total?: number;
+  } | null;
   created_at: string;
+}
+
+interface SourceMonthRow {
+  key: string;
+  label: string;
+  periodStart: string;
+  greenFees: number;
+  carts: number;
+  fb: number;
+  bar: number;
+  addons: number;
+  total: number;
+}
+
+interface DailyDataEntry {
+  date: string;
+  daily_target: number;
+  revenue: number;
+}
+
+interface GapEntry {
+  date: string;
+  daily_target: number;
+  revenue: number;
+  gap: number;
 }
 
 interface MonthBucket {
@@ -80,6 +112,17 @@ function formatCurrency(amount: number): string {
   })}`;
 }
 
+function formatNiceDate(dateString: string): string {
+  const [yearStr, monthStr, dayStr] = dateString.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+  const day = Number(dayStr);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return dateString;
+  }
+  return `${MONTH_NAMES[month]} ${day}, ${year}`;
+}
+
 function formatDiff(diff: number): string {
   const sign = diff >= 0 ? "+" : "-";
   return `${sign}${formatCurrency(Math.abs(diff))}`;
@@ -96,6 +139,9 @@ export default function RevenuePage() {
   const [latestSnapshotByBooking, setLatestSnapshotByBooking] = useState<
     Record<string, PricingSnapshotRow>
   >({});
+  const [seasonReportDailyData, setSeasonReportDailyData] = useState<
+    DailyDataEntry[] | null
+  >(null);
 
   const fetchData = useCallback(async () => {
     if (!courseId) return;
@@ -131,9 +177,22 @@ export default function RevenuePage() {
         }
       }
 
+      const { data: seasonReportData, error: seasonReportErr } = await supabase
+        .from("season_reports")
+        .select("report, created_at")
+        .eq("course_id", courseId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (seasonReportErr) throw seasonReportErr;
+
       setTargets((targetsData ?? []) as RevenueTarget[]);
       setBookings((bookingsData ?? []) as BookingRow[]);
       setLatestSnapshotByBooking(latestByBooking);
+
+      const dailyData = (seasonReportData?.report as { daily_data?: DailyDataEntry[] } | null)
+        ?.daily_data;
+      setSeasonReportDailyData(Array.isArray(dailyData) ? dailyData : null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load revenue data"
@@ -199,6 +258,54 @@ export default function RevenuePage() {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [bookings]);
+
+  const revenueBySource: SourceMonthRow[] = useMemo(() => {
+    const map = new Map<string, SourceMonthRow>();
+    for (const b of bookings) {
+      if (b.status === "draft") continue;
+      const snap = latestSnapshotByBooking[b.id]?.snapshot;
+      if (!snap) continue;
+      const key = monthKeyFromDate(b.date);
+      let row = map.get(key);
+      if (!row) {
+        row = {
+          key,
+          label: monthLabel(key),
+          periodStart: `${key}-01`,
+          greenFees: 0,
+          carts: 0,
+          fb: 0,
+          bar: 0,
+          addons: 0,
+          total: 0,
+        };
+        map.set(key, row);
+      }
+      row.greenFees += Number(snap.green_fees) || 0;
+      row.carts += Number(snap.cart_cost) || 0;
+      row.fb += Number(snap.fb_total) || 0;
+      row.bar += Number(snap.bar_total) || 0;
+      row.addons += Number(snap.addon_total) || 0;
+      row.total += Number(snap.total) || 0;
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.periodStart.localeCompare(b.periodStart)
+    );
+  }, [bookings, latestSnapshotByBooking]);
+
+  const gapEntries: GapEntry[] = useMemo(() => {
+    if (!seasonReportDailyData) return [];
+    return seasonReportDailyData
+      .map((d) => ({
+        date: d.date,
+        daily_target: Number(d.daily_target) || 0,
+        revenue: Number(d.revenue) || 0,
+        gap: (Number(d.daily_target) || 0) - (Number(d.revenue) || 0),
+      }))
+      .filter((d) => d.revenue < d.daily_target)
+      .sort((a, b) => b.gap - a.gap)
+      .slice(0, 10);
+  }, [seasonReportDailyData]);
 
   const maxBarValue = useMemo(() => {
     let max = 0;
@@ -435,6 +542,117 @@ export default function RevenuePage() {
                 </ul>
               </section>
             )}
+
+            {/* Section 4: Revenue by Source Breakdown */}
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Revenue by Source
+              </h2>
+              {revenueBySource.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No pricing snapshots available for this course.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border border-gray-200 text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-gray-700">
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Month
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Green Fees
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Carts
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          F&amp;B
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Bar
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Add-ons
+                        </th>
+                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueBySource.map((row, idx) => (
+                        <tr
+                          key={row.key}
+                          className={`${
+                            idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          } border-b border-gray-200`}
+                        >
+                          <td className="px-4 py-2 text-gray-900 font-medium">
+                            {row.label}
+                          </td>
+                          <td className="px-4 py-2 text-gray-700">
+                            {formatCurrency(row.greenFees)}
+                          </td>
+                          <td className="px-4 py-2 text-gray-700">
+                            {formatCurrency(row.carts)}
+                          </td>
+                          <td className="px-4 py-2 text-gray-700">
+                            {formatCurrency(row.fb)}
+                          </td>
+                          <td className="px-4 py-2 text-gray-700">
+                            {formatCurrency(row.bar)}
+                          </td>
+                          <td className="px-4 py-2 text-gray-700">
+                            {formatCurrency(row.addons)}
+                          </td>
+                          <td className="px-4 py-2 text-gray-900 font-semibold">
+                            {formatCurrency(row.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* Section 5: Gap Analysis */}
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                Gap Analysis
+              </h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Top 10 days where booked revenue fell short of the daily target.
+              </p>
+              {!seasonReportDailyData ? (
+                <p className="text-sm text-gray-500">
+                  Run the Season Simulator to see gap analysis.
+                </p>
+              ) : gapEntries.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No days are below target.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {gapEntries.map((g) => (
+                    <li
+                      key={g.date}
+                      className="py-2 text-sm text-gray-800"
+                    >
+                      <span className="font-medium text-gray-900">
+                        {formatNiceDate(g.date)}
+                      </span>{" "}
+                      — Target: {formatCurrency(g.daily_target)} / Booked:{" "}
+                      {formatCurrency(g.revenue)} /{" "}
+                      <span className="text-orange-600 font-semibold">
+                        Gap: {formatCurrency(g.gap)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         )}
       </main>
