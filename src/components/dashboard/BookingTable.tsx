@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 export interface Booking {
   id: string;
+  course_id: string;
   date: string;
   player_count: number;
   status: string;

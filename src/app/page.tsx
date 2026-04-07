@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import NavBar from "@/components/NavBar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
+import RevenueBreakdownCards from "@/components/dashboard/RevenueBreakdownCards";
 import BookingTable, {
   type Booking,
   type PricingSnapshot,
@@ -22,6 +23,16 @@ export default function HomePage() {
   const [escalatedCount, setEscalatedCount] = useState<number | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Revenue breakdown state
+  const [revenueBreakdown, setRevenueBreakdown] = useState({
+    greenFees: 0,
+    cartCost: 0,
+    fbTotal: 0,
+    barTotal: 0,
+    addonTotal: 0,
+  });
+  const [breakdownLoading, setBreakdownLoading] = useState(true);
 
   // Bookings state
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -129,6 +140,77 @@ export default function HomePage() {
     setSummaryLoading(false);
   }, [courseId, supabase, today]);
 
+  const fetchRevenueBreakdown = useCallback(async () => {
+    if (!courseId) return;
+    setBreakdownLoading(true);
+    try {
+      // Get bookings that are NOT cancelled and NOT draft
+      const { data: qualifyingBookings, error: bErr } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("course_id", courseId)
+        .not("status", "in", "(cancelled,draft)");
+
+      const totals = {
+        greenFees: 0,
+        cartCost: 0,
+        fbTotal: 0,
+        barTotal: 0,
+        addonTotal: 0,
+      };
+
+      if (!bErr && qualifyingBookings && qualifyingBookings.length > 0) {
+        const qualifyingIds = new Set(qualifyingBookings.map((b) => b.id));
+        const { data: snapshots, error: snapErr } = await supabase
+          .from("pricing_snapshots")
+          .select("booking_id, snapshot, created_at")
+          .eq("course_id", courseId)
+          .order("created_at", { ascending: false });
+
+        if (!snapErr && snapshots) {
+          const seen = new Set<string>();
+          for (const s of snapshots as Array<{
+            booking_id: string;
+            snapshot: {
+              green_fees?: number;
+              cart_cost?: number;
+              fb_total?: number;
+              bar_total?: number;
+              addon_total?: number;
+            } | null;
+            created_at: string;
+          }>) {
+            if (!qualifyingIds.has(s.booking_id)) continue;
+            if (seen.has(s.booking_id)) continue;
+            seen.add(s.booking_id);
+            const snap = s.snapshot ?? {};
+            if (typeof snap.green_fees === "number")
+              totals.greenFees += snap.green_fees;
+            if (typeof snap.cart_cost === "number")
+              totals.cartCost += snap.cart_cost;
+            if (typeof snap.fb_total === "number")
+              totals.fbTotal += snap.fb_total;
+            if (typeof snap.bar_total === "number")
+              totals.barTotal += snap.bar_total;
+            if (typeof snap.addon_total === "number")
+              totals.addonTotal += snap.addon_total;
+          }
+        }
+      }
+      setRevenueBreakdown(totals);
+    } catch {
+      setRevenueBreakdown({
+        greenFees: 0,
+        cartCost: 0,
+        fbTotal: 0,
+        barTotal: 0,
+        addonTotal: 0,
+      });
+    } finally {
+      setBreakdownLoading(false);
+    }
+  }, [courseId, supabase]);
+
   const fetchBookings = useCallback(async () => {
     if (!courseId) return;
     setBookingsLoading(true);
@@ -179,8 +261,9 @@ export default function HomePage() {
     if (!authLoading && courseId) {
       fetchSummary();
       fetchBookings();
+      fetchRevenueBreakdown();
     }
-  }, [authLoading, courseId, fetchSummary, fetchBookings]);
+  }, [authLoading, courseId, fetchSummary, fetchBookings, fetchRevenueBreakdown]);
 
   const handleCancelDraft = async (bookingId: string) => {
     const { error } = await supabase
@@ -192,6 +275,7 @@ export default function HomePage() {
     setSelectedBooking(null);
     fetchSummary();
     fetchBookings();
+    fetchRevenueBreakdown();
   };
 
   if (authLoading) {
@@ -221,6 +305,15 @@ export default function HomePage() {
           onRetry={fetchSummary}
         />
 
+        <RevenueBreakdownCards
+          greenFees={revenueBreakdown.greenFees}
+          cartCost={revenueBreakdown.cartCost}
+          fbTotal={revenueBreakdown.fbTotal}
+          barTotal={revenueBreakdown.barTotal}
+          addonTotal={revenueBreakdown.addonTotal}
+          loading={breakdownLoading}
+        />
+
         <div className="flex-1 min-h-[600px]">
         <BookingTable
           bookings={bookings}
@@ -241,6 +334,11 @@ export default function HomePage() {
           snapshot={pricingMap.get(selectedBooking.id) ?? null}
           onClose={() => setSelectedBooking(null)}
           onCancelDraft={handleCancelDraft}
+          onRefresh={() => {
+            fetchSummary();
+            fetchBookings();
+            fetchRevenueBreakdown();
+          }}
         />
       )}
     </div>
