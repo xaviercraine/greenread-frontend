@@ -3,6 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useBooking } from "@/components/booking/BookingContext";
+import {
+  useBookingWindow,
+  bookingWindowStatus,
+  bookingWindowTooltip,
+} from "@/lib/useBookingWindow";
 
 type AvailableDate = {
   available_date: string;
@@ -33,6 +38,7 @@ function getDayTypeStyles(dayType: string): string {
 export default function Screen2Dates({ courseId }: { courseId: string }) {
   const supabase = useMemo(() => createClient(), []);
   const { state, dispatch } = useBooking();
+  const bookingWindow = useBookingWindow(courseId);
 
   const [dates, setDates] = useState<AvailableDate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,18 +168,26 @@ export default function Screen2Dates({ courseId }: { courseId: string }) {
             }
 
             const info = cell.dateStr ? availableDateSet.get(cell.dateStr) : null;
-            const isAvailable = !!info;
+            const windowStatus = cell.dateStr
+              ? bookingWindowStatus(cell.dateStr, bookingWindow)
+              : "ok";
+            const isOutsideWindow = windowStatus !== "ok";
+            const isAvailable = !!info && !isOutsideWindow;
             const isSelected = cell.dateStr === state.selectedDate;
+            const windowTooltip = bookingWindowTooltip(windowStatus, bookingWindow);
 
             return (
               <button
                 key={idx}
                 disabled={!isAvailable}
+                title={windowTooltip}
                 onClick={() => {
                   if (cell.dateStr) dispatch({ type: "SET_DATE", date: cell.dateStr });
                 }}
                 className={`relative h-14 rounded-lg text-sm font-medium transition-colors ${
-                  !isAvailable
+                  isOutsideWindow
+                    ? "bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed border border-gray-200"
+                    : !isAvailable
                     ? "bg-gray-100 text-gray-300 cursor-not-allowed"
                     : isSelected
                     ? "border-2 border-green-600 ring-2 ring-green-200 " + getDayTypeStyles(info!.date_day_type)
@@ -181,7 +195,7 @@ export default function Screen2Dates({ courseId }: { courseId: string }) {
                 }`}
               >
                 {cell.day}
-                {info?.warnings && (
+                {info?.warnings && !isOutsideWindow && (
                   <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-yellow-500" />
                 )}
               </button>

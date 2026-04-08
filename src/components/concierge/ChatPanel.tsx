@@ -5,6 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { callEdgeFunction } from "@/lib/edgeFunction";
 import { useAuth } from "@/components/AuthProvider";
+import {
+  useBookingWindow,
+  bookingWindowStatus,
+  bookingWindowTooltip,
+  type BookingWindow,
+} from "@/lib/useBookingWindow";
 
 type StructuredDataItem = {
   type: string;
@@ -103,12 +109,14 @@ function StructuredDataRenderer({
   disabled,
   onNavigate,
   onClose,
+  bookingWindow,
 }: {
   items: StructuredDataItem[];
   onSend: (text: string) => void;
   disabled?: boolean;
   onNavigate: (path: string) => void;
   onClose: () => void;
+  bookingWindow: BookingWindow;
 }) {
   return (
     <div className="mt-2 space-y-2">
@@ -145,13 +153,19 @@ function StructuredDataRenderer({
                       year: "numeric",
                     });
                   })();
+                  const windowStatus = bookingWindowStatus(dateStr, bookingWindow);
+                  const isOutsideWindow = windowStatus !== "ok";
+                  const windowTooltip = bookingWindowTooltip(windowStatus, bookingWindow);
                   return (
                     <button
                       key={dateStr}
                       type="button"
-                      disabled={disabled}
+                      disabled={disabled || isOutsideWindow}
+                      title={windowTooltip}
                       onClick={() => onSend(`I'd like ${dateStr}`)}
-                      className="rounded-lg border px-3 py-1.5 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`rounded-lg border px-3 py-1.5 text-left transition-colors hover:bg-gray-50 disabled:cursor-not-allowed ${
+                        isOutsideWindow ? "opacity-50" : "disabled:opacity-50"
+                      }`}
                       style={{ borderColor: ACCENT, color: ACCENT, backgroundColor: "white" }}
                     >
                       <div className="text-xs font-medium">{label}</div>
@@ -374,6 +388,7 @@ export default function ChatPanel() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, courseId } = useAuth();
+  const bookingWindow = useBookingWindow(courseId);
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -637,6 +652,7 @@ export default function ChatPanel() {
                       disabled={loading}
                       onNavigate={(path) => router.push(path)}
                       onClose={() => setOpen(false)}
+                      bookingWindow={bookingWindow}
                     />
                   )}
                 </div>
