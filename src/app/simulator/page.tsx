@@ -12,12 +12,15 @@ interface SeasonTotals {
 }
 
 interface MonthlySummary {
-  month?: string;
-  bookings?: number;
-  revenue?: number;
-  target?: number;
-  difference?: number;
-  utilization?: number;
+  year: number;
+  month: number;
+  target: number;
+  total_players: number;
+  total_revenue: number;
+  available_days: number;
+  total_bookings: number;
+  avg_utilization: number;
+  revenue_vs_target_pct: number | null;
 }
 
 interface DailyDatum {
@@ -31,13 +34,21 @@ interface DailyDatum {
 
 interface VulnerableDate {
   date: string;
-  revenue?: number;
-  reason?: string;
+  day_type: string;
+  booking_count: number;
+  total_revenue: number;
+  daily_target: number;
+  revenue_if_one_lost: number;
 }
 
 interface UnderutilizedDate {
   date: string;
-  utilization_pct?: number;
+  day_type: string;
+  booking_count: number;
+  total_players: number;
+  max_players: number;
+  utilization_pct: number;
+  daily_target: number;
 }
 
 interface SeasonReport {
@@ -95,31 +106,78 @@ function formatNiceDate(dateString: string): string {
   return `${MONTH_NAMES[month]} ${day}, ${year}`;
 }
 
+const SHORT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatNiceDateWeekday(dateString: string): string {
+  const [yearStr, monthStr, dayStr] = dateString.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+  const day = Number(dayStr);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return dateString;
+  }
+  const weekday = SHORT_WEEKDAYS[new Date(year, month, day).getDay()];
+  return `${weekday}, ${SHORT_MONTHS[month]} ${day}, ${year}`;
+}
+
+function formatCurrencyCents(amount: number | undefined | null): string {
+  const n = Number(amount) || 0;
+  return `$${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatPctWhole(value: number | undefined | null): string {
+  const n = Number(value) || 0;
+  return `${Math.round(n)}%`;
+}
+
+function vulnerableDotColor(postLoss: number, target: number): string {
+  if (target <= 0) return "bg-gray-400";
+  const pct = (postLoss / target) * 100;
+  if (pct < 25) return "bg-red-500";
+  if (pct <= 75) return "bg-yellow-500";
+  return "bg-green-500";
+}
+
+function utilizationDotColor(pct: number | undefined | null): string {
+  const n = Number(pct) || 0;
+  if (n < 25) return "bg-red-500";
+  if (n <= 75) return "bg-yellow-500";
+  return "bg-green-500";
+}
+
+function monthlyDotColor(
+  pct: number | null | undefined,
+  target: number
+): string {
+  if (target <= 0 || pct == null) return "bg-gray-400";
+  if (pct < 25) return "bg-red-500";
+  if (pct <= 75) return "bg-yellow-500";
+  return "bg-green-500";
+}
+
 function formatTimestamp(ts: string): string {
   try {
     return new Date(ts).toLocaleString();
   } catch {
     return ts;
   }
-}
-
-function formatMonthLabel(monthString: string | number | undefined): string {
-  if (monthString == null || monthString === "") return "—";
-  if (typeof monthString === "number") {
-    const idx = monthString - 1;
-    if (idx >= 0 && idx < MONTH_NAMES.length) return MONTH_NAMES[idx];
-    return String(monthString);
-  }
-  if (typeof monthString === "string") {
-    // Accept "YYYY-MM" or "YYYY-MM-DD"
-    const parts = monthString.split("-");
-    if (parts.length < 2) return monthString;
-    const year = Number(parts[0]);
-    const month = Number(parts[1]) - 1;
-    if (Number.isNaN(year) || Number.isNaN(month)) return monthString;
-    return `${MONTH_NAMES[month]} ${year}`;
-  }
-  return String(monthString);
 }
 
 function utilizationColor(pct: number | undefined | null): string {
@@ -156,6 +214,16 @@ export default function SimulatorPage() {
   const [report, setReport] = useState<SeasonReport | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [openCards, setOpenCards] = useState<Set<string>>(new Set());
+
+  const toggleCard = useCallback((key: string) => {
+    setOpenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const fetchExistingReport = useCallback(async () => {
     if (!courseId) return;
@@ -221,8 +289,8 @@ export default function SimulatorPage() {
 
   const totals = report?.season_totals ?? {};
   const monthlySummaries = report?.monthly_summaries ?? [];
-  const vulnerableDates = (report?.vulnerable_dates ?? []).slice(0, 10);
-  const underutilizedDates = (report?.underutilized_dates ?? []).slice(0, 10);
+  const vulnerableDates = report?.vulnerable_dates ?? [];
+  const underutilizedDates = report?.underutilized_dates ?? [];
 
   if (authLoading) {
     return (
@@ -270,14 +338,17 @@ export default function SimulatorPage() {
         )}
 
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-12 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow p-12 flex items-center justify-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+            <span className="text-sm text-gray-500">
+              Loading season data...
+            </span>
           </div>
         ) : !report ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500">
-              No season report yet. Click &quot;Run Season Simulator&quot; to
-              generate one.
+              No season report available. Click &quot;Run Season
+              Simulation&quot; to generate one.
             </p>
           </div>
         ) : (
@@ -323,76 +394,84 @@ export default function SimulatorPage() {
               </div>
             </section>
 
-            {/* Section: Monthly Summary */}
+            {/* Section: Monthly Breakdown */}
             <section className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Monthly Summary
+                Monthly Breakdown
               </h2>
               {monthlySummaries.length === 0 ? (
-                <p className="text-sm text-gray-500">No monthly data.</p>
+                <p className="text-sm text-gray-500">
+                  No monthly data available
+                </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border border-gray-200 text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 text-left text-gray-700">
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Month
-                        </th>
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Bookings
-                        </th>
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Revenue
-                        </th>
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Target
-                        </th>
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Difference
-                        </th>
-                        <th className="px-4 py-2 border-b border-gray-200 font-medium">
-                          Utilization
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {monthlySummaries.map((m, idx) => {
-                        const diff = Number(m.difference) || 0;
-                        return (
-                          <tr
-                            key={`${m.month}-${idx}`}
-                            className={`${
-                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                            } border-b border-gray-200`}
-                          >
-                            <td className="px-4 py-2 text-gray-900 font-medium">
-                              {formatMonthLabel(m.month)}
-                            </td>
-                            <td className="px-4 py-2 text-gray-700">
-                              {(m.bookings ?? 0).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-2 text-gray-700">
-                              {formatCurrency(m.revenue)}
-                            </td>
-                            <td className="px-4 py-2 text-gray-700">
-                              {formatCurrency(m.target)}
-                            </td>
-                            <td
-                              className={`px-4 py-2 font-semibold ${
-                                diff >= 0 ? "text-green-700" : "text-red-600"
-                              }`}
-                            >
-                              {diff >= 0 ? "+" : "-"}
-                              {formatCurrency(Math.abs(diff))}
-                            </td>
-                            <td className="px-4 py-2 text-gray-700">
-                              {formatPct(m.utilization)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div>
+                  {monthlySummaries.map((m, idx) => {
+                    const key = `monthly-${m.year}-${m.month}-${idx}`;
+                    const isOpen = openCards.has(key);
+                    const target = Number(m.target) || 0;
+                    const pct = m.revenue_vs_target_pct;
+                    const monthName =
+                      m.month >= 1 && m.month <= 12
+                        ? MONTH_NAMES[m.month - 1]
+                        : String(m.month);
+                    const headline =
+                      target > 0 && pct != null
+                        ? `${monthName} ${m.year} — ${Math.round(
+                            pct
+                          )}% of target (${formatCurrency(
+                            m.total_revenue
+                          )} / ${formatCurrency(target)})`
+                        : `${monthName} ${m.year} — No revenue target set`;
+                    const dotColor = monthlyDotColor(pct, target);
+                    return (
+                      <div
+                        key={key}
+                        className="border border-gray-200 rounded-lg p-4 mb-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCard(key)}
+                          aria-expanded={isOpen}
+                          className="w-full flex justify-between items-center cursor-pointer text-left"
+                        >
+                          <span className="flex items-center text-sm text-gray-900 font-medium">
+                            <span
+                              className={`w-3 h-3 rounded-full inline-block mr-2 ${dotColor}`}
+                            />
+                            {headline}
+                          </span>
+                          <span className="text-gray-400 text-xs ml-2">
+                            {isOpen ? "▼" : "▶"}
+                          </span>
+                        </button>
+                        {isOpen && (
+                          <div className="pt-3 mt-3 border-t border-gray-100 text-sm text-gray-700 space-y-1">
+                            <div>Available days: {m.available_days}</div>
+                            <div>
+                              Bookings:{" "}
+                              {(m.total_bookings ?? 0).toLocaleString()}
+                            </div>
+                            <div>
+                              Players: {(m.total_players ?? 0).toLocaleString()}
+                            </div>
+                            <div>
+                              Revenue: {formatCurrencyCents(m.total_revenue)}
+                            </div>
+                            <div>
+                              Target:{" "}
+                              {target > 0
+                                ? formatCurrencyCents(target)
+                                : "No target"}
+                            </div>
+                            <div>
+                              Avg utilization:{" "}
+                              {formatPctWhole(m.avg_utilization)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -501,35 +580,104 @@ export default function SimulatorPage() {
                 Vulnerable Dates
               </h2>
               <p className="text-xs text-gray-500 mb-4">
-                Top 10 dates flagged as vulnerable.
+                (dates where losing one booking drops below daily target)
               </p>
               {vulnerableDates.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  No vulnerable dates detected.
+                  No vulnerable dates identified
                 </p>
               ) : (
-                <ul className="divide-y divide-gray-200">
-                  {vulnerableDates.map((v, idx) => (
-                    <li
-                      key={`${v.date}-${idx}`}
-                      className="py-2 text-sm text-gray-800"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">
-                          {formatNiceDate(v.date)}
-                        </span>
-                        <span className="text-gray-700">
-                          {formatCurrency(v.revenue)}
-                        </span>
+                <div>
+                  {vulnerableDates.map((v, idx) => {
+                    const key = `vulnerable-${v.date}-${idx}`;
+                    const isOpen = openCards.has(key);
+                    const totalRev = Number(v.total_revenue) || 0;
+                    const target = Number(v.daily_target) || 0;
+                    const postLoss = Number(v.revenue_if_one_lost) || 0;
+                    const bookings = Number(v.booking_count) || 0;
+                    const revenueLost = totalRev - postLoss;
+                    const targetShortfall = target - postLoss;
+                    const dotColor = vulnerableDotColor(postLoss, target);
+                    const headline = `${formatNiceDateWeekday(v.date)} (${
+                      v.day_type
+                    }) — ${formatCurrency(revenueLost)} at risk if one cancels`;
+                    let explanation: string;
+                    if (postLoss >= target && target > 0) {
+                      explanation = `This ${v.day_type} has ${bookings} bookings. Even after losing one, revenue of ${formatCurrency(
+                        postLoss
+                      )} would still meet the ${formatCurrency(
+                        target
+                      )} daily target.`;
+                    } else if (bookings === 1) {
+                      explanation = `This ${v.day_type} has only 1 booking generating ${formatCurrency(
+                        totalRev
+                      )}. A single cancellation would eliminate all revenue, leaving a ${formatCurrency(
+                        target
+                      )} shortfall against your daily target.`;
+                    } else {
+                      explanation = `This ${v.day_type} has ${bookings} bookings totaling ${formatCurrency(
+                        totalRev
+                      )}. Losing one would reduce revenue by ${formatCurrency(
+                        revenueLost
+                      )} to ${formatCurrency(
+                        postLoss
+                      )}, leaving a ${formatCurrency(
+                        targetShortfall
+                      )} shortfall against your ${formatCurrency(
+                        target
+                      )} daily target.`;
+                    }
+                    return (
+                      <div
+                        key={key}
+                        className="border border-gray-200 rounded-lg p-4 mb-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCard(key)}
+                          aria-expanded={isOpen}
+                          className="w-full flex justify-between items-center cursor-pointer text-left"
+                        >
+                          <span className="flex items-center text-sm text-gray-900 font-medium">
+                            <span
+                              className={`w-3 h-3 rounded-full inline-block mr-2 ${dotColor}`}
+                            />
+                            {headline}
+                          </span>
+                          <span className="text-gray-400 text-xs ml-2">
+                            {isOpen ? "▼" : "▶"}
+                          </span>
+                        </button>
+                        {isOpen && (
+                          <div className="pt-3 mt-3 border-t border-gray-100 text-sm text-gray-700 space-y-1">
+                            <div>Current bookings: {bookings}</div>
+                            <div>
+                              Current revenue: {formatCurrencyCents(totalRev)}
+                            </div>
+                            <div>
+                              Daily revenue target:{" "}
+                              {formatCurrencyCents(target)}
+                            </div>
+                            <div>
+                              Revenue if one cancels:{" "}
+                              {formatCurrencyCents(postLoss)}
+                            </div>
+                            <div>
+                              Revenue lost: {formatCurrencyCents(revenueLost)}
+                            </div>
+                            <div>
+                              Target shortfall if lost:{" "}
+                              {formatCurrencyCents(targetShortfall)}
+                            </div>
+                            <div className="italic text-gray-600 text-sm mt-2">
+                              {explanation}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {v.reason && (
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {v.reason}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                    );
+                  })}
+                </div>
               )}
             </section>
 
@@ -539,28 +687,83 @@ export default function SimulatorPage() {
                 Underutilized Dates
               </h2>
               <p className="text-xs text-gray-500 mb-4">
-                Top 10 dates with the lowest utilization.
+                (dates with the most open capacity)
               </p>
               {underutilizedDates.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  No underutilized dates.
+                  No underutilized dates identified
                 </p>
               ) : (
-                <ul className="divide-y divide-gray-200">
-                  {underutilizedDates.map((u, idx) => (
-                    <li
-                      key={`${u.date}-${idx}`}
-                      className="py-2 text-sm flex items-center justify-between"
-                    >
-                      <span className="font-medium text-gray-900">
-                        {formatNiceDate(u.date)}
-                      </span>
-                      <span className="text-orange-600 font-semibold">
-                        {formatPct(u.utilization_pct)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div>
+                  {underutilizedDates.map((u, idx) => {
+                    const key = `under-${u.date}-${idx}`;
+                    const isOpen = openCards.has(key);
+                    const bookings = Number(u.booking_count) || 0;
+                    const players = Number(u.total_players) || 0;
+                    const maxPlayers = Number(u.max_players) || 0;
+                    const utilPct = Number(u.utilization_pct) || 0;
+                    const target = Number(u.daily_target) || 0;
+                    const dotColor = utilizationDotColor(utilPct);
+                    const headline = `${formatNiceDateWeekday(u.date)} (${
+                      u.day_type
+                    }) — ${formatPctWhole(
+                      utilPct
+                    )} utilized, ${players}/${maxPlayers} players`;
+                    let explanation: string;
+                    if (bookings === 0 && target > 0) {
+                      explanation = `This ${u.day_type} has no bookings. Capacity for ${maxPlayers} players is entirely open. Daily revenue target of ${formatCurrency(
+                        target
+                      )} is unmet.`;
+                    } else if (bookings === 0) {
+                      explanation = `This ${u.day_type} has no bookings. Capacity for ${maxPlayers} players is entirely open.`;
+                    } else {
+                      explanation = `This ${u.day_type} has ${bookings} booking(s) with ${players} of ${maxPlayers} player slots filled (${formatPctWhole(
+                        utilPct
+                      )} utilized).`;
+                    }
+                    return (
+                      <div
+                        key={key}
+                        className="border border-gray-200 rounded-lg p-4 mb-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCard(key)}
+                          aria-expanded={isOpen}
+                          className="w-full flex justify-between items-center cursor-pointer text-left"
+                        >
+                          <span className="flex items-center text-sm text-gray-900 font-medium">
+                            <span
+                              className={`w-3 h-3 rounded-full inline-block mr-2 ${dotColor}`}
+                            />
+                            {headline}
+                          </span>
+                          <span className="text-gray-400 text-xs ml-2">
+                            {isOpen ? "▼" : "▶"}
+                          </span>
+                        </button>
+                        {isOpen && (
+                          <div className="pt-3 mt-3 border-t border-gray-100 text-sm text-gray-700 space-y-1">
+                            <div>Bookings: {bookings}</div>
+                            <div>
+                              Players booked: {players} of {maxPlayers} capacity
+                            </div>
+                            <div>Utilization: {formatPctWhole(utilPct)}</div>
+                            <div>
+                              Daily revenue target:{" "}
+                              {target > 0
+                                ? formatCurrencyCents(target)
+                                : "No target"}
+                            </div>
+                            <div className="italic text-gray-600 text-sm mt-2">
+                              {explanation}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </section>
           </>
