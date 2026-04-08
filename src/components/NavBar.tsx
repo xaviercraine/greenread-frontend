@@ -63,6 +63,12 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
                 Revenue
               </Link>
               <Link
+                href="/organizers"
+                className="text-sm font-medium text-gray-700 hover:text-green-700"
+              >
+                Organizers
+              </Link>
+              <Link
                 href="/scenarios"
                 className="text-sm font-medium text-gray-700 hover:text-green-700"
               >
