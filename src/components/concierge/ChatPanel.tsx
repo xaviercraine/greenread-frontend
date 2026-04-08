@@ -1,21 +1,337 @@
 "use client";
 
-import { useEffect, useRef, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { callEdgeFunction } from "@/lib/edgeFunction";
 import { useAuth } from "@/components/AuthProvider";
 
+type StructuredDataItem = {
+  type: string;
+  data: Record<string, unknown>;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   error?: boolean;
+  structured_data?: StructuredDataItem[];
 };
+
+const ACCENT = "#2D6A4F";
 
 const SESSION_KEY = "greenread_concierge_session";
 const MESSAGES_KEY = "greenread_concierge_messages";
 const CONVERSATION_KEY = "greenread_concierge_conversation_id";
 const OPEN_KEY = "greenread_concierge_open";
+
+function Pill({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-block rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{
+        borderColor: ACCENT,
+        color: ACCENT,
+        backgroundColor: "white",
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = ACCENT;
+          e.currentTarget.style.color = "white";
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "white";
+        e.currentTarget.style.color = ACCENT;
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function StructuredCard({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-xl border bg-white p-3 text-xs"
+      style={{ borderColor: `${ACCENT}40` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CollapsibleJson({ data }: { data: unknown }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <StructuredCard>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="font-semibold"
+        style={{ color: ACCENT }}
+      >
+        {open ? "▼" : "▶"} Raw data
+      </button>
+      {open && (
+        <pre className="mt-2 overflow-x-auto rounded bg-gray-50 p-2 text-[10px] text-gray-700">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      )}
+    </StructuredCard>
+  );
+}
+
+function StructuredDataRenderer({
+  items,
+  onSend,
+  disabled,
+}: {
+  items: StructuredDataItem[];
+  onSend: (text: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="mt-2 space-y-2">
+      {items.map((item, idx) => {
+        const { type, data } = item;
+
+        if (type === "dates") {
+          const dates =
+            (data?.dates as
+              | Array<
+                  | string
+                  | {
+                      available_date: string;
+                      date_day_type?: string;
+                    }
+                >
+              | undefined) ?? [];
+          return (
+            <StructuredCard key={idx}>
+              <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
+                📅 {dates.length} available date{dates.length === 1 ? "" : "s"}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {dates.map((d) => {
+                  const dateStr = typeof d === "string" ? d : d.available_date;
+                  const dayType = typeof d === "string" ? undefined : d.date_day_type;
+                  const label = (() => {
+                    const parsed = new Date(dateStr);
+                    if (Number.isNaN(parsed.getTime())) return dateStr;
+                    return parsed.toLocaleDateString(undefined, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    });
+                  })();
+                  return (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onSend(`I'd like ${dateStr}`)}
+                      className="rounded-lg border px-3 py-1.5 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ borderColor: ACCENT, color: ACCENT, backgroundColor: "white" }}
+                    >
+                      <div className="text-xs font-medium">{label}</div>
+                      {dayType && (
+                        <div className="text-[10px] opacity-70">{dayType}</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </StructuredCard>
+          );
+        }
+
+        if (type === "formats") {
+          const formats =
+            (data?.formats as Array<{
+              name: string;
+              min_players?: number;
+              max_players?: number;
+              duration_hours?: number;
+            }>) ?? [];
+          return (
+            <StructuredCard key={idx}>
+              <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
+                ⛳ Formats
+              </div>
+              <div className="space-y-1.5">
+                {formats.map((f) => (
+                  <button
+                    key={f.name}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSend(`I'll go with ${f.name}`)}
+                    className="block w-full rounded-lg border bg-white p-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ borderColor: `${ACCENT}40` }}
+                  >
+                    <div className="font-medium" style={{ color: ACCENT }}>
+                      {f.name}
+                    </div>
+                    <div className="text-[10px] text-gray-600">
+                      {f.min_players ?? "?"}–{f.max_players ?? "?"} players ·{" "}
+                      {f.duration_hours ?? "?"}h
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </StructuredCard>
+          );
+        }
+
+        if (type === "fb_options") {
+          const fb =
+            (data?.fb_packages as Array<{
+              name: string;
+              price_per_person?: number;
+            }>) ?? [];
+          const bar =
+            (data?.bar_packages as Array<{
+              name: string;
+              price_per_person?: number;
+            }>) ?? [];
+          const playerCount = (data?.player_count as number | undefined) ?? 0;
+          const renderPkg = (
+            p: { name: string; price_per_person?: number },
+            key: string
+          ) => (
+            <button
+              key={key}
+              type="button"
+              disabled={disabled}
+              onClick={() =>
+                onSend(`I'd like ${p.name} for ${playerCount} people`)
+              }
+              className="flex w-full items-center justify-between rounded-lg border bg-white p-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ borderColor: `${ACCENT}40` }}
+            >
+              <span className="font-medium" style={{ color: ACCENT }}>
+                {p.name}
+              </span>
+              <span className="text-[10px] text-gray-600">
+                ${p.price_per_person ?? "?"}/pp
+              </span>
+            </button>
+          );
+          return (
+            <StructuredCard key={idx}>
+              <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
+                🍽️ Food & Beverage Options
+              </div>
+              {fb.length > 0 && (
+                <div className="mb-2">
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-gray-500">
+                    Food
+                  </div>
+                  <div className="space-y-1.5">
+                    {fb.map((p, i) => renderPkg(p, `fb-${i}`))}
+                  </div>
+                </div>
+              )}
+              {bar.length > 0 && (
+                <div>
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-gray-500">
+                    Bar
+                  </div>
+                  <div className="space-y-1.5">
+                    {bar.map((p, i) => renderPkg(p, `bar-${i}`))}
+                  </div>
+                </div>
+              )}
+            </StructuredCard>
+          );
+        }
+
+        if (type === "addons") {
+          const addons =
+            (data?.addons as Array<{ name: string; price?: number }>) ?? [];
+          return (
+            <StructuredCard key={idx}>
+              <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
+                ➕ Add-ons
+              </div>
+              <div className="space-y-1.5">
+                {addons.map((a, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSend(`Add ${a.name}`)}
+                    className="flex w-full items-center justify-between rounded-lg border bg-white p-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ borderColor: `${ACCENT}40` }}
+                  >
+                    <span className="font-medium" style={{ color: ACCENT }}>
+                      {a.name}
+                    </span>
+                    <span className="text-[10px] text-gray-600">
+                      ${a.price ?? "?"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </StructuredCard>
+          );
+        }
+
+        if (type === "pricing") {
+          const total = data?.total as number | undefined;
+          const draft = data?.draft as
+            | { id?: string | number; [k: string]: unknown }
+            | undefined;
+          return (
+            <StructuredCard key={idx}>
+              <div
+                className="flex items-center justify-between font-semibold"
+                style={{ color: ACCENT }}
+              >
+                <span>💰 Total</span>
+                <span className="text-base">${total ?? "?"}</span>
+              </div>
+              {draft && (
+                <div
+                  className="mt-2 rounded-lg border p-2"
+                  style={{
+                    borderColor: ACCENT,
+                    backgroundColor: `${ACCENT}10`,
+                  }}
+                >
+                  <div className="font-semibold" style={{ color: ACCENT }}>
+                    Draft Created! ID: {String(draft.id ?? "—")}
+                  </div>
+                  <pre className="mt-1 overflow-x-auto text-[10px] text-gray-700">
+                    {JSON.stringify(draft, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </StructuredCard>
+          );
+        }
+
+        return <CollapsibleJson key={idx} data={item} />;
+      })}
+    </div>
+  );
+}
 
 export default function ChatPanel() {
   const pathname = usePathname();
@@ -107,9 +423,17 @@ export default function ChatPanel() {
       }
       if (result.escalated) setEscalated(true);
 
+      const structured = Array.isArray(result.structured_data)
+        ? (result.structured_data as StructuredDataItem[])
+        : undefined;
+
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: result.response ?? "" },
+        {
+          role: "assistant",
+          content: result.response ?? "",
+          structured_data: structured,
+        },
       ]);
     } catch {
       setMessages((prev) => [
@@ -128,6 +452,13 @@ export default function ChatPanel() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    await sendMessage(text);
+  };
+
+  const handleQuickSend = async (text: string) => {
     if (!text || loading) return;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: text }]);
@@ -260,6 +591,13 @@ export default function ChatPanel() {
                     >
                       Retry
                     </button>
+                  )}
+                  {msg.structured_data && msg.structured_data.length > 0 && (
+                    <StructuredDataRenderer
+                      items={msg.structured_data}
+                      onSend={handleQuickSend}
+                      disabled={loading}
+                    />
                   )}
                 </div>
               </div>
