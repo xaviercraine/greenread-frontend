@@ -19,6 +19,9 @@ export interface CalendarBooking {
 
 export interface PipelineBooking extends CalendarBooking {
   notes: string | null;
+  created_at: string;
+  status_changed_at: string | null;
+  total_amount: number | null;
 }
 
 export interface DateBlock {
@@ -171,16 +174,49 @@ export default function CalendarPage() {
     setPipeLoading(true);
     setPipeError(null);
     try {
-      const { data, error } = await supabase
+      const { data: bookingRows, error } = await supabase
         .from("bookings")
         .select(
-          "id, date, status, player_count, notes, tournament_formats(name)"
+          "id, date, status, player_count, carts_allocated, notes, created_at, status_changed_at, tournament_formats(name)"
         )
         .eq("course_id", courseId)
-        .neq("status", "cancelled")
         .order("date");
       if (error) throw error;
-      setPipelineBookings((data ?? []) as unknown as PipelineBooking[]);
+
+      const bookings = (bookingRows ?? []) as unknown as Array<
+        Omit<PipelineBooking, "total_amount">
+      >;
+
+      // Fetch latest pricing snapshot total per booking
+      const totalsByBooking = new Map<string, number>();
+      if (bookings.length > 0) {
+        const { data: snapshots, error: snapErr } = await supabase
+          .from("pricing_snapshots")
+          .select("booking_id, snapshot, created_at")
+          .eq("course_id", courseId)
+          .order("created_at", { ascending: false });
+        if (snapErr) throw snapErr;
+        const bookingIds = new Set(bookings.map((b) => b.id));
+        for (const s of (snapshots ?? []) as Array<{
+          booking_id: string;
+          snapshot: { total?: number } | null;
+          created_at: string;
+        }>) {
+          if (!bookingIds.has(s.booking_id)) continue;
+          if (totalsByBooking.has(s.booking_id)) continue;
+          const total = s.snapshot?.total;
+          totalsByBooking.set(
+            s.booking_id,
+            typeof total === "number" ? total : 0
+          );
+        }
+      }
+
+      const enriched: PipelineBooking[] = bookings.map((b) => ({
+        ...b,
+        total_amount: totalsByBooking.get(b.id) ?? null,
+      }));
+      setPipelineBookings(enriched);
     } catch (err) {
       setPipeError(
         err instanceof Error ? err.message : "Failed to load pipeline"
