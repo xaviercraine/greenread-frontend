@@ -32,6 +32,10 @@ export default function CheckoutPage() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
+  const [termsText, setTermsText] = useState<string | null>(null);
+  const [weatherPolicy, setWeatherPolicy] = useState<string | null>(null);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!bookingId) return;
     setLoading(true);
@@ -68,6 +72,16 @@ export default function CheckoutPage() {
       const snapJson = (snapData as { snapshot: SnapshotRecord }).snapshot;
       setBooking(bookingData as BookingRecord);
       setSnapshot(snapJson);
+
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("terms_text, weather_policy")
+        .eq("id", bookingData.course_id)
+        .single();
+      if (courseData) {
+        setTermsText(courseData.terms_text ?? null);
+        setWeatherPolicy(courseData.weather_policy ?? null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load booking");
     } finally {
@@ -195,10 +209,35 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {termsText && (
+            <div className="mb-6">
+              <div className="max-h-[200px] overflow-y-auto border border-gray-200 rounded-md bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                {termsText}
+                {weatherPolicy && (
+                  <>
+                    {"\n\n"}
+                    <span className="font-semibold">Weather Policy</span>
+                    {"\n"}
+                    {weatherPolicy}
+                  </>
+                )}
+              </div>
+              <label className="mt-3 flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAgreed}
+                  onChange={(e) => setTermsAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span>I agree to the booking terms and conditions</span>
+              </label>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handlePay}
-            disabled={paying}
+            disabled={paying || (!!termsText && !termsAgreed)}
             className="w-full py-4 bg-green-600 text-white text-lg font-semibold rounded-md hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {paying ? (

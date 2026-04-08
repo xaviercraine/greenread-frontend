@@ -15,6 +15,8 @@ interface CourseData {
   min_booking_notice_days: number;
   max_advance_booking_days: number;
   fb_minimum_spend: number;
+  terms_text: string;
+  weather_policy: string;
 }
 
 const EMPTY_COURSE: CourseData = {
@@ -29,6 +31,8 @@ const EMPTY_COURSE: CourseData = {
   min_booking_notice_days: 0,
   max_advance_booking_days: 0,
   fb_minimum_spend: 0,
+  terms_text: "",
+  weather_policy: "",
 };
 
 export default function Step1CourseBasics({ courseId }: { courseId: string }) {
@@ -38,6 +42,9 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [termsSaved, setTermsSaved] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
 
   const fetchCourse = async () => {
     setLoading(true);
@@ -62,6 +69,8 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
         min_booking_notice_days: data.min_booking_notice_days ?? 0,
         max_advance_booking_days: data.max_advance_booking_days ?? 0,
         fb_minimum_spend: data.fb_minimum_spend ?? 0,
+        terms_text: data.terms_text ?? "",
+        weather_policy: data.weather_policy ?? "",
       });
     }
     setLoading(false);
@@ -74,7 +83,28 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
 
   const handleChange = (field: keyof CourseData, value: string | number) => {
     setSaved(false);
+    setTermsSaved(false);
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveTerms = async () => {
+    setSavingTerms(true);
+    setTermsError(null);
+    setTermsSaved(false);
+    const { error: err } = await supabase
+      .from("courses")
+      .update({
+        terms_text: form.terms_text,
+        weather_policy: form.weather_policy,
+      })
+      .eq("id", courseId);
+    if (err) {
+      setTermsError(err.message);
+    } else {
+      setTermsSaved(true);
+      setTimeout(() => setTermsSaved(false), 3000);
+    }
+    setSavingTerms(false);
   };
 
   const handleSave = async () => {
@@ -222,6 +252,59 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
           )}
         </button>
         {saved && <span className="text-green-600 text-sm font-medium">Saved!</span>}
+      </div>
+
+      {/* Terms & Conditions */}
+      <div className="mt-10 pt-6 border-t border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Terms &amp; Conditions</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Booking Terms &amp; Conditions
+            </label>
+            <textarea
+              value={form.terms_text}
+              onChange={(e) => handleChange("terms_text", e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Weather Policy
+            </label>
+            <textarea
+              value={form.weather_policy}
+              onChange={(e) => handleChange("weather_policy", e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {termsError && (
+          <p className="mt-3 text-red-600 text-sm">{termsError}</p>
+        )}
+
+        <div className="mt-4 flex items-center gap-4">
+          <button
+            onClick={handleSaveTerms}
+            disabled={savingTerms}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+          >
+            {savingTerms ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                Saving…
+              </span>
+            ) : (
+              "Save Terms"
+            )}
+          </button>
+          {termsSaved && (
+            <span className="text-green-600 text-sm font-medium">Terms saved!</span>
+          )}
+        </div>
       </div>
     </div>
   );

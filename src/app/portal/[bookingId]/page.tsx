@@ -161,6 +161,11 @@ export default function OrganizerPortalPage({
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [modifySuccess, setModifySuccess] = useState<string | null>(null);
 
+  const [termsText, setTermsText] = useState<string | null>(null);
+  const [weatherPolicy, setWeatherPolicy] = useState<string | null>(null);
+  const [termsExpanded, setTermsExpanded] = useState(false);
+  const [weatherExpanded, setWeatherExpanded] = useState(false);
+
   const load = useCallback(async () => {
     if (!token) {
       setTokenError("Invalid or expired link. Please contact the course for a new link.");
@@ -265,6 +270,16 @@ export default function OrganizerPortalPage({
 
       if (courseRes.data) setCourse(courseRes.data as CourseRow);
       if (formatRes.data) setFormat(formatRes.data as FormatRow);
+
+      const { data: termsData } = await supabase
+        .from("courses")
+        .select("terms_text, weather_policy")
+        .eq("id", bookingRow.course_id)
+        .single();
+      if (termsData) {
+        setTermsText(termsData.terms_text ?? null);
+        setWeatherPolicy(termsData.weather_policy ?? null);
+      }
 
       const snap = (pricingRes.data as PricingSnapshotRow | null)?.snapshot ?? null;
       setPricing(snap);
@@ -709,6 +724,56 @@ export default function OrganizerPortalPage({
             </div>
           </section>
         )}
+        {/* Terms & Conditions */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            View Terms &amp; Conditions
+          </h2>
+          {!termsText && !weatherPolicy ? (
+            <p className="text-sm text-gray-500">No terms on file.</p>
+          ) : (
+            <div className="space-y-3">
+              {termsText && (
+                <div className="border border-gray-200 rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setTermsExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-900 hover:bg-gray-50"
+                  >
+                    <span>Booking Terms &amp; Conditions</span>
+                    <span className="text-gray-500">
+                      {termsExpanded ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {termsExpanded && (
+                    <div className="px-4 pb-4 text-sm text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-3">
+                      {termsText}
+                    </div>
+                  )}
+                </div>
+              )}
+              {weatherPolicy && (
+                <div className="border border-gray-200 rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setWeatherExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-900 hover:bg-gray-50"
+                  >
+                    <span>Weather Policy</span>
+                    <span className="text-gray-500">
+                      {weatherExpanded ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {weatherExpanded && (
+                    <div className="px-4 pb-4 text-sm text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-3">
+                      {weatherPolicy}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </main>
 
       <footer className="border-t border-gray-200 bg-white">
