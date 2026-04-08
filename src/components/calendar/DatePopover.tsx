@@ -1,12 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { CalendarBooking, DateBlock } from "@/app/calendar/page";
+import type {
+  CalendarBooking,
+  DateBlock,
+  DateInventory,
+} from "@/app/calendar/page";
 
 interface DatePopoverProps {
   dateString: string;
   bookings: CalendarBooking[];
   block: DateBlock | null;
+  inventory: DateInventory | null;
+  inventoryLoading: boolean;
   busy: boolean;
   error: string | null;
   onClose: () => void;
@@ -37,6 +43,8 @@ export default function DatePopover({
   dateString,
   bookings,
   block,
+  inventory,
+  inventoryLoading,
   busy,
   error,
   onClose,
@@ -44,6 +52,11 @@ export default function DatePopover({
   onUnblock,
 }: DatePopoverProps) {
   const router = useRouter();
+  const hasAnyAllocations =
+    !!inventory &&
+    (inventory.nines.allocated.length > 0 ||
+      inventory.spaces.allocated.length > 0 ||
+      inventory.carts.allocated > 0);
 
   return (
     <div
@@ -126,6 +139,146 @@ export default function DatePopover({
               </div>
             )
           )}
+
+          {/* Resource inventory */}
+          <div className="space-y-3 pt-2 border-t border-gray-200">
+            <div className="text-sm font-semibold text-gray-700">
+              Resource Inventory
+            </div>
+            {inventoryLoading ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500" />
+                Loading inventory…
+              </div>
+            ) : !inventory ? null : bookings.length === 0 && !hasAnyAllocations ? (
+              <div className="text-sm text-gray-500 italic">
+                All resources available.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Nines */}
+                <div className="rounded-md border border-gray-200 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Nines
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {inventory.nines.available.length} of{" "}
+                      {inventory.nines.available.length +
+                        inventory.nines.allocated.length}{" "}
+                      available
+                    </div>
+                  </div>
+                  {inventory.nines.available.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {inventory.nines.available.map((n) => (
+                        <span
+                          key={n.id}
+                          className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium"
+                        >
+                          {n.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500 italic mt-1">
+                      None available
+                    </div>
+                  )}
+                  {inventory.nines.allocated.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                        Allocated
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {inventory.nines.allocated.map((n) => (
+                          <span
+                            key={n.id}
+                            className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 text-xs font-medium line-through"
+                          >
+                            {n.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Carts */}
+                <div className="rounded-md border border-gray-200 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Carts
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {Math.max(
+                        inventory.carts.total - inventory.carts.allocated,
+                        0
+                      )}{" "}
+                      of {inventory.carts.total} available
+                    </div>
+                  </div>
+                  {inventory.carts.allocated > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {inventory.carts.allocated} allocated
+                    </div>
+                  )}
+                </div>
+
+                {/* Event Spaces */}
+                {inventory.spaces.available.length +
+                  inventory.spaces.allocated.length >
+                  0 && (
+                  <div className="rounded-md border border-gray-200 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                        Event Spaces
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {inventory.spaces.available.length} of{" "}
+                        {inventory.spaces.available.length +
+                          inventory.spaces.allocated.length}{" "}
+                        available
+                      </div>
+                    </div>
+                    {inventory.spaces.available.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {inventory.spaces.available.map((s) => (
+                          <span
+                            key={s.id}
+                            className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium"
+                          >
+                            {s.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500 italic mt-1">
+                        None available
+                      </div>
+                    )}
+                    {inventory.spaces.allocated.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                          Allocated
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {inventory.spaces.allocated.map((s) => (
+                            <span
+                              key={s.id}
+                              className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 text-xs font-medium line-through"
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">

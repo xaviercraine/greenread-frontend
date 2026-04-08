@@ -13,6 +13,7 @@ export interface CalendarBooking {
   date: string;
   status: string;
   player_count: number;
+  carts_allocated: number | null;
   tournament_formats: { name: string } | null;
 }
 
@@ -26,6 +27,23 @@ export interface DateBlock {
   date: string;
   block_type: string;
   reason: string | null;
+}
+
+export interface NineRow {
+  id: string;
+  name: string;
+  sort_order: number | null;
+}
+
+export interface EventSpaceRow {
+  id: string;
+  name: string;
+}
+
+export interface DateInventory {
+  nines: { available: NineRow[]; allocated: NineRow[] };
+  spaces: { available: EventSpaceRow[]; allocated: EventSpaceRow[] };
+  carts: { allocated: number; total: number };
 }
 
 type ViewMode = "calendar" | "pipeline";
@@ -83,6 +101,20 @@ export default function CalendarPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Course resources (fetched once per course)
+  const [allNines, setAllNines] = useState<NineRow[]>([]);
+  const [allSpaces, setAllSpaces] = useState<EventSpaceRow[]>([]);
+  const [totalCarts, setTotalCarts] = useState<number>(0);
+
+  // Per-date allocations (booking_nines / booking_event_spaces)
+  const [allocatedNineIds, setAllocatedNineIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [allocatedSpaceIds, setAllocatedSpaceIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+
   const fetchCalendarData = useCallback(async () => {
     if (!courseId) return;
     setCalLoading(true);
@@ -93,7 +125,7 @@ export default function CalendarPage() {
       const { data: bookingsData, error: bookingsErr } = await supabase
         .from("bookings")
         .select(
-          "id, date, status, player_count, tournament_formats(name)"
+          "id, date, status, player_count, carts_allocated, tournament_formats(name)"
         )
         .eq("course_id", courseId)
         .gte("date", start)
@@ -163,6 +195,98 @@ export default function CalendarPage() {
       fetchCalendarData();
     }
   }, [authLoading, courseId, viewMode, fetchCalendarData]);
+
+  // Fetch course resources (nines, event_spaces, total_carts) once per course
+  useEffect(() => {
+    if (!courseId) return;
+    let cancelled = false;
+    (async () => {
+      const [ninesRes, spacesRes, courseRes] = await Promise.all([
+        supabase
+          .from("nines")
+          .select("id, name, sort_order")
+          .eq("course_id", courseId)
+          .order("sort_order"),
+        supabase
+          .from("event_spaces")
+          .select("id, name")
+          .eq("course_id", courseId)
+          .order("name"),
+        supabase
+          .from("courses")
+          .select("total_carts")
+          .eq("id", courseId)
+          .single(),
+      ]);
+      if (cancelled) return;
+      setAllNines((ninesRes.data ?? []) as NineRow[]);
+      setAllSpaces((spacesRes.data ?? []) as EventSpaceRow[]);
+      setTotalCarts((courseRes.data?.total_carts as number | undefined) ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, supabase]);
+
+  // Fetch per-date allocations when a date is selected
+  useEffect(() => {
+    if (!selectedDate || !courseId) {
+      setAllocatedNineIds(new Set());
+      setAllocatedSpaceIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    setInventoryLoading(true);
+    (async () => {
+      try {
+        // Step 1: get booking IDs for this course/date that aren't cancelled
+        const { data: bookingRows } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("course_id", courseId)
+          .eq("date", selectedDate)
+          .neq("status", "cancelled");
+        if (cancelled) return;
+        const bookingIds = (bookingRows ?? []).map((r) => r.id as string);
+
+        if (bookingIds.length === 0) {
+          setAllocatedNineIds(new Set());
+          setAllocatedSpaceIds(new Set());
+          return;
+        }
+
+        // Step 2: fetch allocations using simple .in() filter
+        const [bnRes, besRes] = await Promise.all([
+          supabase
+            .from("booking_nines")
+            .select("nine_id")
+            .in("booking_id", bookingIds),
+          supabase
+            .from("booking_event_spaces")
+            .select("space_id")
+            .in("booking_id", bookingIds),
+        ]);
+        if (cancelled) return;
+        const nineIds = new Set<string>(
+          ((bnRes.data ?? []) as Array<{ nine_id: string }>).map(
+            (r) => r.nine_id
+          )
+        );
+        const spaceIds = new Set<string>(
+          ((besRes.data ?? []) as Array<{ space_id: string }>).map(
+            (r) => r.space_id
+          )
+        );
+        setAllocatedNineIds(nineIds);
+        setAllocatedSpaceIds(spaceIds);
+      } finally {
+        if (!cancelled) setInventoryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, courseId, supabase]);
 
   useEffect(() => {
     if (!authLoading && courseId && viewMode === "pipeline") {
@@ -255,6 +379,34 @@ export default function CalendarPage() {
     if (!selectedDate) return null;
     return blocks.find((b) => b.date === selectedDate) ?? null;
   }, [blocks, selectedDate]);
+
+  const selectedDateInventory = useMemo<DateInventory | null>(() => {
+    if (!selectedDate) return null;
+    const cartsAllocated = selectedDateBookings
+      .filter(
+        (b) => b.status !== "cancelled" && b.status !== "completed"
+      )
+      .reduce((sum, b) => sum + (b.carts_allocated ?? 0), 0);
+    return {
+      nines: {
+        available: allNines.filter((n) => !allocatedNineIds.has(n.id)),
+        allocated: allNines.filter((n) => allocatedNineIds.has(n.id)),
+      },
+      spaces: {
+        available: allSpaces.filter((s) => !allocatedSpaceIds.has(s.id)),
+        allocated: allSpaces.filter((s) => allocatedSpaceIds.has(s.id)),
+      },
+      carts: { allocated: cartsAllocated, total: totalCarts },
+    };
+  }, [
+    selectedDate,
+    selectedDateBookings,
+    allNines,
+    allSpaces,
+    allocatedNineIds,
+    allocatedSpaceIds,
+    totalCarts,
+  ]);
 
   if (authLoading) {
     return (
@@ -377,6 +529,8 @@ export default function CalendarPage() {
           dateString={selectedDate}
           bookings={selectedDateBookings}
           block={selectedDateBlock}
+          inventory={selectedDateInventory}
+          inventoryLoading={inventoryLoading}
           busy={actionBusy}
           error={actionError}
           onClose={handleClosePopover}
