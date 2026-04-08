@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent, ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { callEdgeFunction } from "@/lib/edgeFunction";
 import { useAuth } from "@/components/AuthProvider";
@@ -101,10 +101,14 @@ function StructuredDataRenderer({
   items,
   onSend,
   disabled,
+  onNavigate,
+  onClose,
 }: {
   items: StructuredDataItem[];
   onSend: (text: string) => void;
   disabled?: boolean;
+  onNavigate: (path: string) => void;
+  onClose: () => void;
 }) {
   return (
     <div className="mt-2 space-y-2">
@@ -296,8 +300,14 @@ function StructuredDataRenderer({
         if (type === "pricing") {
           const total = data?.total as number | undefined;
           const draft = data?.draft as
-            | { id?: string | number; [k: string]: unknown }
+            | {
+                id?: string | number;
+                date?: string;
+                format?: string;
+                [k: string]: unknown;
+              }
             | undefined;
+          const draftId = draft?.id ? String(draft.id) : null;
           return (
             <StructuredCard key={idx}>
               <div
@@ -307,21 +317,48 @@ function StructuredDataRenderer({
                 <span>💰 Total</span>
                 <span className="text-base">${total ?? "?"}</span>
               </div>
-              {draft && (
-                <div
-                  className="mt-2 rounded-lg border p-2"
-                  style={{
-                    borderColor: ACCENT,
-                    backgroundColor: `${ACCENT}10`,
-                  }}
-                >
-                  <div className="font-semibold" style={{ color: ACCENT }}>
-                    Draft Created! ID: {String(draft.id ?? "—")}
+              {draft && draftId && (
+                <>
+                  <div
+                    className="mt-2 rounded-lg border p-2"
+                    style={{
+                      borderColor: ACCENT,
+                      backgroundColor: `${ACCENT}10`,
+                    }}
+                  >
+                    <div className="font-semibold" style={{ color: ACCENT }}>
+                      ✅ Draft Created — Booking ID: {draftId.slice(0, 8)}
+                    </div>
+                    {(draft.date || draft.format) && (
+                      <div className="mt-1 text-[11px] text-gray-700">
+                        {draft.date && <span>{String(draft.date)}</span>}
+                        {draft.date && draft.format && <span> · </span>}
+                        {draft.format && <span>{String(draft.format)}</span>}
+                      </div>
+                    )}
                   </div>
-                  <pre className="mt-1 overflow-x-auto text-[10px] text-gray-700">
-                    {JSON.stringify(draft, null, 2)}
-                  </pre>
-                </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onNavigate(`/checkout/${draftId}`)}
+                      className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Pay Deposit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        onClose();
+                        onNavigate("/dashboard");
+                      }}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      View on Dashboard
+                    </button>
+                  </div>
+                </>
               )}
             </StructuredCard>
           );
@@ -335,6 +372,7 @@ function StructuredDataRenderer({
 
 export default function ChatPanel() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, courseId } = useAuth();
 
   const [open, setOpen] = useState(false);
@@ -597,6 +635,8 @@ export default function ChatPanel() {
                       items={msg.structured_data}
                       onSend={handleQuickSend}
                       disabled={loading}
+                      onNavigate={(path) => router.push(path)}
+                      onClose={() => setOpen(false)}
                     />
                   )}
                 </div>
