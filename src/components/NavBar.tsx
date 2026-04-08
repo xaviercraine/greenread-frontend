@@ -20,7 +20,10 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
   const pathname = usePathname() ?? "/";
   const [search, setSearch] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
 
   // Read search params on client to avoid forcing Suspense boundaries.
   useEffect(() => {
@@ -41,7 +44,20 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
   // Close dropdown on route change
   useEffect(() => {
     setOpenMenu(null);
+    setMobileOpen(false);
   }, [pathname]);
+
+  // Close mobile menu on tap outside
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [mobileOpen]);
 
   const isPipelineView =
     pathname === "/calendar" && search.includes("view=pipeline");
@@ -143,15 +159,27 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
     </div>
   );
 
+  const mobileItemClass = (active: boolean) =>
+    `block px-4 py-3 text-sm border-l-4 ${
+      active
+        ? "text-green-700 font-medium border-green-600 bg-green-50"
+        : "text-gray-700 border-transparent hover:bg-gray-50"
+    }`;
+
+  const mobileSubItemClass = (active: boolean) =>
+    `block pl-10 pr-4 py-2 text-sm ${
+      active ? "text-green-700 font-medium" : "text-gray-600 hover:bg-gray-50"
+    }`;
+
   return (
-    <nav className="bg-white shadow">
+    <nav ref={mobileRef} className="bg-white shadow relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div ref={navRef} className="flex items-center gap-8">
             <Link href="/" className="text-xl font-bold text-green-700">
               Greenread
             </Link>
-            <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-6">
               <Link href="/" className={topLinkClass(dashboardActive)}>
                 Dashboard
                 {escalatedCount > 0 && (
@@ -181,7 +209,7 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
             <span className="text-sm text-gray-600">{user?.email}</span>
             <button
               onClick={signOut}
@@ -190,8 +218,116 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
               Sign Out
             </button>
           </div>
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            aria-label="Toggle navigation menu"
+            onClick={() => setMobileOpen((v) => !v)}
+            className="md:hidden p-2 text-gray-700 hover:text-green-700 text-2xl leading-none"
+          >
+            ☰
+          </button>
         </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="md:hidden absolute left-0 right-0 top-full bg-white shadow-lg border-t border-gray-200 z-50">
+          <Link
+            href="/"
+            className={mobileItemClass(dashboardActive)}
+            onClick={() => setMobileOpen(false)}
+          >
+            Dashboard
+            {escalatedCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                {escalatedCount}
+              </span>
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={() =>
+              setMobileExpanded(
+                mobileExpanded === "tournaments" ? null : "tournaments"
+              )
+            }
+            className={`${mobileItemClass(tournamentsActive)} w-full text-left flex items-center justify-between`}
+          >
+            <span>Tournaments</span>
+            <span className="text-xs ml-2">
+              {mobileExpanded === "tournaments" ? "▼" : "▶"}
+            </span>
+          </button>
+          {mobileExpanded === "tournaments" &&
+            tournamentsItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={mobileSubItemClass(item.match(pathname, search))}
+                onClick={() => setMobileOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          <Link
+            href="/calendar"
+            className={mobileItemClass(calendarActive)}
+            onClick={() => setMobileOpen(false)}
+          >
+            Calendar
+          </Link>
+          <button
+            type="button"
+            onClick={() =>
+              setMobileExpanded(mobileExpanded === "revenue" ? null : "revenue")
+            }
+            className={`${mobileItemClass(revenueActive)} w-full text-left flex items-center justify-between`}
+          >
+            <span>Revenue</span>
+            <span className="text-xs ml-2">
+              {mobileExpanded === "revenue" ? "▼" : "▶"}
+            </span>
+          </button>
+          {mobileExpanded === "revenue" &&
+            revenueItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={mobileSubItemClass(item.match(pathname, search))}
+                onClick={() => setMobileOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          <Link
+            href="/simulator"
+            className={mobileItemClass(simulatorActive)}
+            onClick={() => setMobileOpen(false)}
+          >
+            Simulator
+          </Link>
+          <Link
+            href="/onboarding"
+            className={mobileItemClass(courseSetupActive)}
+            onClick={() => setMobileOpen(false)}
+          >
+            Course Setup
+          </Link>
+          <div className="border-t border-gray-200 px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-gray-600 truncate">{user?.email}</span>
+            <button
+              onClick={() => {
+                setMobileOpen(false);
+                signOut();
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700 ml-3"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

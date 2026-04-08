@@ -37,7 +37,7 @@ export default function RevenueBreakdownCards({
 }: RevenueBreakdownCardsProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -56,7 +56,7 @@ export default function RevenueBreakdownCards({
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {cards.map((card) => (
         <div
           key={card.label}

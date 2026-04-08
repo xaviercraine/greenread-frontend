@@ -182,10 +182,10 @@ export default function BookingTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Override
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Review
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -249,14 +249,14 @@ export default function BookingTable({
                         ? `$${snapshot.snapshot.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="hidden md:table-cell px-4 py-3 text-sm">
                       {booking.override_price != null && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">
                           OVR
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="hidden md:table-cell px-4 py-3 text-sm">
                       {booking.needs_manual_review && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-xs font-medium">
                           REV

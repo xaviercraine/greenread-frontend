@@ -46,7 +46,7 @@ export default function SummaryCards({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -70,7 +70,7 @@ export default function SummaryCards({
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
       {cards.map((card) => (
         <div key={card.label} className="bg-white rounded-lg shadow p-6">
           <p className="text-sm font-medium text-gray-500">{card.label}</p>

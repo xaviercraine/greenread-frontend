@@ -636,7 +636,7 @@ export default function BookingDetail({
       />
 
       {/* Panel */}
-      <div className="fixed top-0 right-0 h-full w-[480px] bg-white shadow-xl z-50 overflow-y-auto">
+      <div className="fixed inset-0 sm:left-auto sm:top-0 sm:right-0 sm:h-full sm:w-[480px] bg-white shadow-xl z-50 overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -839,7 +839,7 @@ export default function BookingDetail({
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Actions
             </h3>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3 [&>*]:text-center sm:[&>*]:text-left">
               {booking.status === "draft" && (
                 <>
                   <Link

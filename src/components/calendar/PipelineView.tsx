@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PipelineBooking } from "@/app/calendar/page";
 
@@ -87,6 +87,13 @@ export default function PipelineView({
   onRetry,
 }: PipelineViewProps) {
   const router = useRouter();
+  const [collapsedMobile, setCollapsedMobile] = useState<Record<string, boolean>>({
+    draft: false,
+    deposit_paid: false,
+    balance_paid: true,
+    confirmed: true,
+    cancelled: true,
+  });
 
   const grouped = useMemo(() => {
     const map: Record<string, PipelineBooking[]> = {};
@@ -157,23 +164,38 @@ export default function PipelineView({
         </span>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-5 md:gap-4">
         {COLUMNS.map((col) => {
           const items = grouped[col.key] ?? [];
+          const isCollapsed = collapsedMobile[col.key];
           return (
             <div
               key={col.key}
-              className={`rounded-lg border ${col.accent} flex flex-col min-h-[400px]`}
+              className={`rounded-lg border ${col.accent} flex flex-col md:min-h-[400px]`}
             >
-              <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-800">
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsedMobile((prev) => ({
+                    ...prev,
+                    [col.key]: !prev[col.key],
+                  }))
+                }
+                className="md:cursor-default px-3 py-2 border-b border-gray-200 flex items-center justify-between w-full text-left"
+              >
+                <span className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <span className="md:hidden text-xs">
+                    {isCollapsed ? "▸" : "▾"}
+                  </span>
                   {col.label}
                 </span>
                 <span className="text-xs font-medium text-gray-600 bg-white px-2 py-0.5 rounded-full">
                   {items.length}
                 </span>
-              </div>
-              <div className="p-2 space-y-2 flex-1">
+              </button>
+              <div
+                className={`p-2 space-y-2 flex-1 ${isCollapsed ? "hidden md:block" : ""}`}
+              >
                 {items.length === 0 ? (
                   <div className="text-xs text-gray-400 italic px-2 py-4 text-center">
                     No bookings
