@@ -189,6 +189,154 @@ function ConfirmModal({
   );
 }
 
+function PricingCard({
+  data,
+  editButton,
+  disabled,
+  onNavigate,
+  onClose,
+}: {
+  data: Record<string, unknown>;
+  editButton: ReactNode;
+  disabled?: boolean;
+  onNavigate: (path: string) => void;
+  onClose: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const fmt = (n: number) =>
+    `$${n.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  const total = typeof data?.total === "number" ? (data.total as number) : undefined;
+  const deposit =
+    typeof data?.deposit === "number" ? (data.deposit as number) : undefined;
+  const draft = data?.draft as
+    | {
+        id?: string | number;
+        date?: string;
+        format?: string;
+        [k: string]: unknown;
+      }
+    | undefined;
+  const draftId = draft?.id ? String(draft.id) : null;
+
+  const lineItemFields: Array<[string, string]> = [
+    ["green_fees", "Green fees"],
+    ["cart_fees", "Cart fees"],
+    ["fb", "Food & Beverage"],
+    ["fb_total", "Food & Beverage"],
+    ["bar", "Bar"],
+    ["bar_total", "Bar"],
+    ["addons", "Add-ons"],
+    ["addons_total", "Add-ons"],
+    ["discount", "Discount"],
+    ["discounts", "Discounts"],
+    ["subtotal", "Subtotal"],
+    ["hst", "HST"],
+    ["tax", "Tax"],
+  ];
+  const seen = new Set<string>();
+  const lineItems = lineItemFields
+    .filter(([k, label]) => {
+      if (typeof data?.[k] !== "number") return false;
+      if (seen.has(label)) return false;
+      seen.add(label);
+      return true;
+    })
+    .map(([k, label]) => [label, data[k] as number] as const);
+
+  return (
+    <StructuredCard>
+      {editButton}
+      <div className="text-xl font-bold text-green-800">
+        {total !== undefined ? fmt(total) : "$?"}
+      </div>
+      {deposit !== undefined && (
+        <div className="text-sm text-gray-600">Deposit: {fmt(deposit)}</div>
+      )}
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="block text-sm text-green-700 hover:text-green-900 font-medium cursor-pointer mt-1"
+      >
+        {expanded ? "Hide breakdown ▲" : "View full breakdown ▼"}
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-300"
+        style={{ maxHeight: expanded ? "2000px" : "0" }}
+      >
+        <div
+          className="mt-2 space-y-1 border-t pt-2"
+          style={{ borderColor: `${ACCENT}40` }}
+        >
+          {lineItems.map(([label, value]) => (
+            <div
+              key={label}
+              className="flex justify-between text-xs text-gray-700"
+            >
+              <span>{label}</span>
+              <span>{fmt(value)}</span>
+            </div>
+          ))}
+          {total !== undefined && (
+            <div
+              className="flex justify-between text-xs font-semibold pt-1 border-t mt-1"
+              style={{ borderColor: `${ACCENT}40`, color: ACCENT }}
+            >
+              <span>Total</span>
+              <span>{fmt(total)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      {draft && draftId && (
+        <>
+          <div
+            className="mt-2 rounded-lg border p-2"
+            style={{
+              borderColor: ACCENT,
+              backgroundColor: `${ACCENT}10`,
+            }}
+          >
+            <div className="font-semibold" style={{ color: ACCENT }}>
+              ✅ Draft Created — Booking ID: {draftId.slice(0, 8)}
+            </div>
+            {(draft.date || draft.format) && (
+              <div className="mt-1 text-[11px] text-gray-700">
+                {draft.date && <span>{String(draft.date)}</span>}
+                {draft.date && draft.format && <span> · </span>}
+                {draft.format && <span>{String(draft.format)}</span>}
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onNavigate(`/checkout/${draftId}`)}
+              className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Pay Deposit
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                onClose();
+                onNavigate("/dashboard");
+              }}
+              className="flex-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              View on Dashboard
+            </button>
+          </div>
+        </>
+      )}
+    </StructuredCard>
+  );
+}
+
 function StructuredDataRenderer({
   items,
   onSend,
@@ -417,70 +565,15 @@ function StructuredDataRenderer({
         }
 
         if (type === "pricing") {
-          const total = data?.total as number | undefined;
-          const draft = data?.draft as
-            | {
-                id?: string | number;
-                date?: string;
-                format?: string;
-                [k: string]: unknown;
-              }
-            | undefined;
-          const draftId = draft?.id ? String(draft.id) : null;
           return (
-            <StructuredCard key={idx}>
-              {editButton}
-              <div
-                className="flex items-center justify-between font-semibold"
-                style={{ color: ACCENT }}
-              >
-                <span>💰 Total</span>
-                <span className="text-base">${total ?? "?"}</span>
-              </div>
-              {draft && draftId && (
-                <>
-                  <div
-                    className="mt-2 rounded-lg border p-2"
-                    style={{
-                      borderColor: ACCENT,
-                      backgroundColor: `${ACCENT}10`,
-                    }}
-                  >
-                    <div className="font-semibold" style={{ color: ACCENT }}>
-                      ✅ Draft Created — Booking ID: {draftId.slice(0, 8)}
-                    </div>
-                    {(draft.date || draft.format) && (
-                      <div className="mt-1 text-[11px] text-gray-700">
-                        {draft.date && <span>{String(draft.date)}</span>}
-                        {draft.date && draft.format && <span> · </span>}
-                        {draft.format && <span>{String(draft.format)}</span>}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onNavigate(`/checkout/${draftId}`)}
-                      className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Pay Deposit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => {
-                        onClose();
-                        onNavigate("/dashboard");
-                      }}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      View on Dashboard
-                    </button>
-                  </div>
-                </>
-              )}
-            </StructuredCard>
+            <PricingCard
+              key={idx}
+              data={data}
+              editButton={editButton}
+              disabled={disabled}
+              onNavigate={onNavigate}
+              onClose={onClose}
+            />
           );
         }
 
