@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { callEdgeFunction } from "@/lib/edgeFunction";
@@ -16,6 +16,30 @@ interface RefundInfo {
   daysUntilEvent: number;
   tier: CancellationTier | null;
   refundAmount: number | null;
+}
+
+interface FbSelectionRow {
+  id: string;
+  name: string;
+  meal_type: string | null;
+  price_per_person: number;
+  headcount: number;
+}
+
+interface BarSelectionRow {
+  id: string;
+  name: string;
+  bar_type: string | null;
+  price_per_person: number;
+  headcount: number;
+}
+
+interface AddonSelectionRow {
+  id: string;
+  name: string;
+  pricing_type: string | null;
+  price: number;
+  quantity: number;
 }
 
 interface BookingDetailProps {
@@ -112,6 +136,193 @@ export default function BookingDetail({
 
   const canCancelBooking =
     booking.status === "deposit_paid" || booking.status === "balance_paid";
+
+  const canModifySelections =
+    booking.status === "deposit_paid" ||
+    booking.status === "balance_paid" ||
+    booking.status === "confirmed";
+
+  const [showModifySelections, setShowModifySelections] = useState(false);
+  const [modifyLoading, setModifyLoading] = useState(false);
+  const [modifySubmitting, setModifySubmitting] = useState(false);
+  const [modifyError, setModifyError] = useState<string | null>(null);
+  const [modifySuccess, setModifySuccess] = useState<string | null>(null);
+  const [fbSelections, setFbSelections] = useState<FbSelectionRow[]>([]);
+  const [barSelections, setBarSelections] = useState<BarSelectionRow[]>([]);
+  const [addonSelections, setAddonSelections] = useState<AddonSelectionRow[]>([]);
+
+  useEffect(() => {
+    if (!showModifySelections) return;
+    let cancelled = false;
+    (async () => {
+      setModifyLoading(true);
+      setModifyError(null);
+      try {
+        const supabase = createClient();
+        const [
+          fbPackagesRes,
+          barPackagesRes,
+          addonsRes,
+          fbCurrentRes,
+          barCurrentRes,
+          addonCurrentRes,
+        ] = await Promise.all([
+          supabase
+            .from("fb_packages")
+            .select("id, name, meal_type, price_per_person")
+            .eq("course_id", booking.course_id),
+          supabase
+            .from("bar_packages")
+            .select("id, name, bar_type, price_per_person")
+            .eq("course_id", booking.course_id),
+          supabase
+            .from("addons")
+            .select("id, name, pricing_type, price")
+            .eq("course_id", booking.course_id),
+          supabase
+            .from("booking_fb_selections")
+            .select("fb_package_id, headcount")
+            .eq("booking_id", booking.id),
+          supabase
+            .from("booking_bar_selections")
+            .select("bar_package_id, headcount")
+            .eq("booking_id", booking.id),
+          supabase
+            .from("booking_addon_selections")
+            .select("addon_id, quantity")
+            .eq("booking_id", booking.id),
+        ]);
+
+        if (fbPackagesRes.error) throw fbPackagesRes.error;
+        if (barPackagesRes.error) throw barPackagesRes.error;
+        if (addonsRes.error) throw addonsRes.error;
+        if (fbCurrentRes.error) throw fbCurrentRes.error;
+        if (barCurrentRes.error) throw barCurrentRes.error;
+        if (addonCurrentRes.error) throw addonCurrentRes.error;
+
+        const fbCurrentMap = new Map<string, number>(
+          (fbCurrentRes.data ?? []).map((r) => [
+            r.fb_package_id as string,
+            r.headcount as number,
+          ])
+        );
+        const barCurrentMap = new Map<string, number>(
+          (barCurrentRes.data ?? []).map((r) => [
+            r.bar_package_id as string,
+            r.headcount as number,
+          ])
+        );
+        const addonCurrentMap = new Map<string, number>(
+          (addonCurrentRes.data ?? []).map((r) => [
+            r.addon_id as string,
+            r.quantity as number,
+          ])
+        );
+
+        if (cancelled) return;
+        setFbSelections(
+          (fbPackagesRes.data ?? []).map((p) => ({
+            id: p.id as string,
+            name: p.name as string,
+            meal_type: (p.meal_type as string | null) ?? null,
+            price_per_person: Number(p.price_per_person),
+            headcount: fbCurrentMap.get(p.id as string) ?? 0,
+          }))
+        );
+        setBarSelections(
+          (barPackagesRes.data ?? []).map((p) => ({
+            id: p.id as string,
+            name: p.name as string,
+            bar_type: (p.bar_type as string | null) ?? null,
+            price_per_person: Number(p.price_per_person),
+            headcount: barCurrentMap.get(p.id as string) ?? 0,
+          }))
+        );
+        setAddonSelections(
+          (addonsRes.data ?? []).map((a) => ({
+            id: a.id as string,
+            name: a.name as string,
+            pricing_type: (a.pricing_type as string | null) ?? null,
+            price: Number(a.price),
+            quantity: addonCurrentMap.get(a.id as string) ?? 0,
+          }))
+        );
+      } catch (err) {
+        if (!cancelled) {
+          setModifyError(
+            err instanceof Error ? err.message : "Failed to load selections"
+          );
+        }
+      } finally {
+        if (!cancelled) setModifyLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showModifySelections, booking.id, booking.course_id]);
+
+  const closeModifySelectionsModal = () => {
+    if (modifySubmitting) return;
+    setShowModifySelections(false);
+    setModifyError(null);
+    setFbSelections([]);
+    setBarSelections([]);
+    setAddonSelections([]);
+  };
+
+  const handleSaveModifySelections = async () => {
+    setModifySubmitting(true);
+    setModifyError(null);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("modify_booking_selections", {
+        p_booking_id: booking.id,
+        p_course_id: booking.course_id,
+        p_fb_selections: fbSelections
+          .filter((s) => s.headcount > 0)
+          .map((s) => ({ fb_package_id: s.id, headcount: s.headcount })),
+        p_bar_selections: barSelections
+          .filter((s) => s.headcount > 0)
+          .map((s) => ({ bar_package_id: s.id, headcount: s.headcount })),
+        p_addon_selections: addonSelections
+          .filter((s) => s.quantity > 0)
+          .map((s) => ({ addon_id: s.id, quantity: s.quantity })),
+      });
+      if (error) {
+        setModifyError(error.message);
+        setModifySubmitting(false);
+        return;
+      }
+      const result = data as
+        | { success?: boolean; error?: string; new_total?: number }
+        | null;
+      if (result && result.error) {
+        setModifyError(result.error);
+        setModifySubmitting(false);
+        return;
+      }
+      const newTotal = result?.new_total ?? 0;
+      setModifySubmitting(false);
+      setShowModifySelections(false);
+      setFbSelections([]);
+      setBarSelections([]);
+      setAddonSelections([]);
+      setModifySuccess(
+        `Selections updated. New total: $${Number(newTotal).toLocaleString(
+          "en-US",
+          { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+        )}`
+      );
+      setTimeout(() => setModifySuccess(null), 5000);
+      onRefresh?.();
+    } catch (err) {
+      setModifyError(
+        err instanceof Error ? err.message : "Failed to modify selections"
+      );
+      setModifySubmitting(false);
+    }
+  };
 
   const openCancelBookingModal = async () => {
     setShowCancelBooking(true);
@@ -511,6 +722,14 @@ export default function BookingDetail({
                   Override Price
                 </button>
               )}
+              {canModifySelections && (
+                <button
+                  onClick={() => setShowModifySelections(true)}
+                  className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200"
+                >
+                  Modify Selections
+                </button>
+              )}
               {canCancelBooking && (
                 <button
                   onClick={openCancelBookingModal}
@@ -520,6 +739,10 @@ export default function BookingDetail({
                 </button>
               )}
             </div>
+
+            {modifySuccess && (
+              <p className="mt-3 text-sm text-green-600">{modifySuccess}</p>
+            )}
 
             {cancelBookingSuccess && (
               <p className="mt-3 text-sm text-green-600">{cancelBookingSuccess}</p>
@@ -720,6 +943,209 @@ export default function BookingDetail({
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 )}
                 Apply Override
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modify Selections Modal */}
+      {showModifySelections && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={closeModifySelectionsModal}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Modify Selections
+            </h3>
+
+            {modifyLoading ? (
+              <p className="text-sm text-gray-500">Loading selections...</p>
+            ) : (
+              <div className="space-y-6">
+                {/* F&B Packages */}
+                <section>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    F&amp;B Packages
+                  </h4>
+                  {fbSelections.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      No F&amp;B packages available.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {fbSelections.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg px-3 py-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {row.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ${row.price_per_person.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                              })}{" "}
+                              / person
+                              {row.meal_type ? ` · ${row.meal_type}` : ""}
+                            </p>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.headcount}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setFbSelections((prev) =>
+                                prev.map((s) =>
+                                  s.id === row.id
+                                    ? {
+                                        ...s,
+                                        headcount: Number.isNaN(v) ? 0 : Math.max(0, v),
+                                      }
+                                    : s
+                                )
+                              );
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Bar Packages */}
+                <section>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Bar Packages
+                  </h4>
+                  {barSelections.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      No bar packages available.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {barSelections.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg px-3 py-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {row.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ${row.price_per_person.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                              })}{" "}
+                              / person
+                              {row.bar_type ? ` · ${row.bar_type}` : ""}
+                            </p>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.headcount}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setBarSelections((prev) =>
+                                prev.map((s) =>
+                                  s.id === row.id
+                                    ? {
+                                        ...s,
+                                        headcount: Number.isNaN(v) ? 0 : Math.max(0, v),
+                                      }
+                                    : s
+                                )
+                              );
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Add-ons */}
+                <section>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Add-ons
+                  </h4>
+                  {addonSelections.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      No add-ons available.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {addonSelections.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg px-3 py-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {row.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ${row.price.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                              })}
+                              {row.pricing_type ? ` · ${row.pricing_type}` : ""}
+                            </p>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.quantity}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setAddonSelections((prev) =>
+                                prev.map((s) =>
+                                  s.id === row.id
+                                    ? {
+                                        ...s,
+                                        quantity: Number.isNaN(v) ? 0 : Math.max(0, v),
+                                      }
+                                    : s
+                                )
+                              );
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
+
+            {modifyError && (
+              <p className="mt-4 text-sm text-red-600">{modifyError}</p>
+            )}
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={closeModifySelectionsModal}
+                disabled={modifySubmitting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveModifySelections}
+                disabled={modifySubmitting || modifyLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {modifySubmitting && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                Save Changes
               </button>
             </div>
           </div>
