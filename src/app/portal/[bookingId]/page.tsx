@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import ModifySelectionsModal from "@/components/portal/ModifySelectionsModal";
 
 interface BookingRow {
   id: string;
@@ -41,18 +42,27 @@ interface PricingSnapshotRow {
 }
 
 interface FbSelectionRow {
+  fb_package_id: string;
   headcount: number;
   fb_packages: { name: string; price_per_person: number } | null;
 }
 
 interface BarSelectionRow {
+  bar_package_id: string;
   headcount: number;
   bar_packages: { name: string; price_per_person: number } | null;
 }
 
 interface AddonSelectionRow {
+  addon_id: string;
   quantity: number;
   addons: { name: string; price: number } | null;
+}
+
+interface ModificationWindow {
+  open: boolean;
+  days_remaining: number;
+  window_days: number;
 }
 
 interface ParticipantRow {
@@ -144,8 +154,12 @@ export default function OrganizerPortalPage({
   const [addonSelections, setAddonSelections] = useState<AddonSelectionRow[]>([]);
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [foursomes, setFoursomes] = useState<FoursomeRow[]>([]);
+  const [modificationWindow, setModificationWindow] =
+    useState<ModificationWindow | null>(null);
 
   const [copied, setCopied] = useState(false);
+  const [showModifyModal, setShowModifyModal] = useState(false);
+  const [modifySuccess, setModifySuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) {
@@ -203,15 +217,15 @@ export default function OrganizerPortalPage({
           .maybeSingle(),
         supabase
           .from("booking_fb_selections")
-          .select("headcount, fb_packages(name, price_per_person)")
+          .select("fb_package_id, headcount, fb_packages(name, price_per_person)")
           .eq("booking_id", bookingId),
         supabase
           .from("booking_bar_selections")
-          .select("headcount, bar_packages(name, price_per_person)")
+          .select("bar_package_id, headcount, bar_packages(name, price_per_person)")
           .eq("booking_id", bookingId),
         supabase
           .from("booking_addon_selections")
-          .select("quantity, addons(name, price)")
+          .select("addon_id, quantity, addons(name, price)")
           .eq("booking_id", bookingId),
         supabase
           .from("participants")
@@ -260,6 +274,19 @@ export default function OrganizerPortalPage({
       setAddonSelections(((addonRes.data ?? []) as unknown) as AddonSelectionRow[]);
       setParticipants((participantsRes.data ?? []) as ParticipantRow[]);
       setFoursomes(((foursomesRes.data ?? []) as unknown) as FoursomeRow[]);
+
+      // Fetch modification window state
+      const dashboardRes = await supabase.rpc("get_organizer_dashboard", {
+        p_booking_id: bookingId,
+      });
+      if (!dashboardRes.error && dashboardRes.data) {
+        const dash = dashboardRes.data as {
+          modification_window?: ModificationWindow | null;
+        };
+        if (dash.modification_window) {
+          setModificationWindow(dash.modification_window);
+        }
+      }
     } catch (err) {
       setLoadError(
         err instanceof Error ? err.message : "Failed to load booking details"
@@ -476,9 +503,36 @@ export default function OrganizerPortalPage({
 
         {/* Selections */}
         <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Current Selections
-          </h2>
+          <div className="flex items-start justify-between mb-4 gap-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Current Selections
+            </h2>
+            {modificationWindow?.open === true && (
+              <button
+                type="button"
+                onClick={() => setShowModifyModal(true)}
+                className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium whitespace-nowrap"
+              >
+                Modify Selections
+              </button>
+            )}
+          </div>
+
+          {modifySuccess && (
+            <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              {modifySuccess}
+            </div>
+          )}
+
+          {modificationWindow?.open === false && (
+            <div className="mb-4 rounded-md bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-600">
+              Modification window closed — contact the course to make changes.
+              <span className="block text-xs text-gray-500 mt-1">
+                Window: {modificationWindow.window_days} days · Days remaining:{" "}
+                {modificationWindow.days_remaining}
+              </span>
+            </div>
+          )}
 
           <div className="space-y-5">
             <div>
@@ -662,6 +716,32 @@ export default function OrganizerPortalPage({
           Powered by Greenread
         </div>
       </footer>
+
+      {showModifyModal && booking && (
+        <ModifySelectionsModal
+          bookingId={booking.id}
+          courseId={booking.course_id}
+          currentFb={fbSelections.map((s) => ({
+            fb_package_id: s.fb_package_id,
+            headcount: s.headcount,
+          }))}
+          currentBar={barSelections.map((s) => ({
+            bar_package_id: s.bar_package_id,
+            headcount: s.headcount,
+          }))}
+          currentAddons={addonSelections.map((s) => ({
+            addon_id: s.addon_id,
+            quantity: s.quantity,
+          }))}
+          onClose={() => setShowModifyModal(false)}
+          onSaved={() => {
+            setShowModifyModal(false);
+            setModifySuccess("Selections updated successfully.");
+            setTimeout(() => setModifySuccess(null), 5000);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
