@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 type TournamentFormat = {
   id: string;
@@ -302,15 +303,15 @@ export default function QuickQuotePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Player Count <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
+                <NumberInput
+                  integer
                   min={1}
-                  value={playerCount || ""}
-                  onChange={(e) =>
-                    setPlayerCount(parseInt(e.target.value || "0", 10))
-                  }
+                  max={300}
+                  value={playerCount}
+                  onChange={setPlayerCount}
                   className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+                <p className="text-xs text-gray-400 mt-1">max 300</p>
               </div>
 
               {/* Format */}
@@ -379,15 +380,17 @@ export default function QuickQuotePage() {
                     <label className="block text-xs text-gray-500 mb-1">
                       Headcount
                     </label>
-                    <input
-                      type="number"
+                    <NumberInput
+                      integer
                       min={1}
-                      value={fbHeadcount || ""}
-                      onChange={(e) =>
-                        setFbHeadcount(parseInt(e.target.value || "0", 10))
-                      }
+                      max={playerCount || 300}
+                      value={fbHeadcount}
+                      onChange={setFbHeadcount}
                       className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      max {playerCount || 300}
+                    </p>
                   </div>
                 )}
               </div>
@@ -420,15 +423,17 @@ export default function QuickQuotePage() {
                     <label className="block text-xs text-gray-500 mb-1">
                       Headcount
                     </label>
-                    <input
-                      type="number"
+                    <NumberInput
+                      integer
                       min={1}
-                      value={barHeadcount || ""}
-                      onChange={(e) =>
-                        setBarHeadcount(parseInt(e.target.value || "0", 10))
-                      }
+                      max={playerCount || 300}
+                      value={barHeadcount}
+                      onChange={setBarHeadcount}
                       className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      max {playerCount || 300}
+                    </p>
                   </div>
                 )}
               </div>

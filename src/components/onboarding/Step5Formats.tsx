@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface TournamentFormat {
   id: string;
@@ -216,37 +217,16 @@ export default function Step5Formats({ courseId }: { courseId: string }) {
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        value={editMinPlayers}
-                        onChange={(e) => setEditMinPlayers(parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
+                      <NumberInput integer min={1} max={300} value={editMinPlayers} onChange={setEditMinPlayers} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        value={editMaxPlayers}
-                        onChange={(e) => setEditMaxPlayers(parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
+                      <NumberInput integer min={1} max={300} value={editMaxPlayers} onChange={setEditMaxPlayers} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        value={editNinesRequired}
-                        onChange={(e) => setEditNinesRequired(parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
+                      <NumberInput integer min={1} max={4} value={editNinesRequired} onChange={setEditNinesRequired} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        step="0.5"
-                        value={editDuration}
-                        onChange={(e) => setEditDuration(parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
+                      <NumberInput step="0.5" min={0} max={24} value={editDuration} onChange={setEditDuration} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </td>
                     <td className="py-2 pr-4">
                       <input
@@ -357,40 +337,23 @@ export default function Step5Formats({ courseId }: { courseId: string }) {
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Min Players</label>
-              <input
-                type="number"
-                value={addMinPlayers}
-                onChange={(e) => setAddMinPlayers(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <NumberInput integer min={1} max={300} value={addMinPlayers} onChange={setAddMinPlayers} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <p className="text-xs text-gray-400 mt-1">max 300</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Max Players</label>
-              <input
-                type="number"
-                value={addMaxPlayers}
-                onChange={(e) => setAddMaxPlayers(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <NumberInput integer min={1} max={300} value={addMaxPlayers} onChange={setAddMaxPlayers} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <p className="text-xs text-gray-400 mt-1">max 300</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Nines Required</label>
-              <input
-                type="number"
-                value={addNinesRequired}
-                onChange={(e) => setAddNinesRequired(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <NumberInput integer min={1} max={4} value={addNinesRequired} onChange={setAddNinesRequired} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <p className="text-xs text-gray-400 mt-1">max 4</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Duration (hours)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={addDuration}
-                onChange={(e) => setAddDuration(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <NumberInput step="0.5" min={0} max={24} value={addDuration} onChange={setAddDuration} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <p className="text-xs text-gray-400 mt-1">max 24</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Time Restrictions (JSON, optional)</label>

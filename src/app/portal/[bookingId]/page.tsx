@@ -786,6 +786,7 @@ export default function OrganizerPortalPage({
         <ModifySelectionsModal
           bookingId={booking.id}
           courseId={booking.course_id}
+          playerCount={booking.player_count ?? 0}
           currentFb={fbSelections.map((s) => ({
             fb_package_id: s.fb_package_id,
             headcount: s.headcount,

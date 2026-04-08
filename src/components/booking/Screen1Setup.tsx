@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useBooking } from "@/components/booking/BookingContext";
+import NumberInput from "@/components/common/NumberInput";
 
 type TournamentFormat = {
   id: string;
@@ -126,20 +127,22 @@ export default function Screen1Setup({ courseId }: { courseId: string }) {
       <section>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Player Count</h3>
         <div className="flex items-center gap-4">
-          <input
-            type="number"
+          <NumberInput
+            integer
+            min={selectedFormat?.min_players ?? 1}
+            max={selectedFormat?.max_players ?? 300}
             value={state.playerCount}
-            onChange={(e) =>
-              dispatch({ type: "SET_PLAYER_COUNT", playerCount: Number(e.target.value) })
-            }
+            onChange={(v) => dispatch({ type: "SET_PLAYER_COUNT", playerCount: v })}
             className={`w-32 rounded-lg border px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 ${
               !playerCountValid ? "border-red-400" : "border-gray-300"
             }`}
           />
-          {selectedFormat && (
+          {selectedFormat ? (
             <span className={`text-sm ${playerCountValid ? "text-gray-500" : "text-red-600"}`}>
               Range: {selectedFormat.min_players}–{selectedFormat.max_players} players
             </span>
+          ) : (
+            <span className="text-xs text-gray-400">max 300</span>
           )}
         </div>
       </section>

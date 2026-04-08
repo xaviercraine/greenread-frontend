@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface Addon {
   id: string;
@@ -321,7 +322,7 @@ export default function Step7Addons({ courseId }: { courseId: string }) {
                             </select>
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={addonEditPrice} onChange={(e) => setAddonEditPrice(parseFloat(e.target.value) || 0)} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <NumberInput step="0.01" min={0} max={10000} value={addonEditPrice} onChange={setAddonEditPrice} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
                             <input type="checkbox" checked={addonEditDiscount} onChange={(e) => setAddonEditDiscount(e.target.checked)} className="h-4 w-4 text-green-600 rounded focus:ring-green-500" />
@@ -390,7 +391,8 @@ export default function Step7Addons({ courseId }: { courseId: string }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Price</label>
-                    <input type="number" step="0.01" value={addonAddPrice} onChange={(e) => setAddonAddPrice(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <NumberInput step="0.01" min={0} max={10000} value={addonAddPrice} onChange={setAddonAddPrice} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <p className="text-xs text-gray-400 mt-1">max 10000</p>
                   </div>
                   <div className="flex items-end gap-2 pb-1">
                     <input type="checkbox" checked={addonAddDiscount} onChange={(e) => setAddonAddDiscount(e.target.checked)} className="h-4 w-4 text-green-600 rounded focus:ring-green-500" />
@@ -457,10 +459,44 @@ export default function Step7Addons({ courseId }: { courseId: string }) {
                             <input type="text" value={ruleEditType} onChange={(e) => setRuleEditType(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={ruleEditMultiplier} onChange={(e) => setRuleEditMultiplier(e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10) setRuleEditMultiplier("10");
+                              }}
+                              step="0.01"
+                              min={0}
+                              max={10}
+                              value={ruleEditMultiplier}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10) setRuleEditMultiplier("10");
+                                else setRuleEditMultiplier(e.target.value);
+                              }}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={ruleEditValue} onChange={(e) => setRuleEditValue(e.target.value)} className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10000) setRuleEditValue("10000");
+                              }}
+                              step="0.01"
+                              min={0}
+                              max={10000}
+                              value={ruleEditValue}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10000) setRuleEditValue("10000");
+                                else setRuleEditValue(e.target.value);
+                              }}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
                             <input type="checkbox" checked={ruleEditActive} onChange={(e) => setRuleEditActive(e.target.checked)} className="h-4 w-4 text-green-600 rounded focus:ring-green-500" />
@@ -529,11 +565,47 @@ export default function Step7Addons({ courseId }: { courseId: string }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Multiplier (optional)</label>
-                    <input type="number" step="0.01" value={ruleAddMultiplier} onChange={(e) => setRuleAddMultiplier(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10) setRuleAddMultiplier("10");
+                      }}
+                      step="0.01"
+                      min={0}
+                      max={10}
+                      value={ruleAddMultiplier}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10) setRuleAddMultiplier("10");
+                        else setRuleAddMultiplier(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 10</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Value (optional)</label>
-                    <input type="number" step="0.01" value={ruleAddValue} onChange={(e) => setRuleAddValue(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10000) setRuleAddValue("10000");
+                      }}
+                      step="0.01"
+                      min={0}
+                      max={10000}
+                      value={ruleAddValue}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10000) setRuleAddValue("10000");
+                        else setRuleAddValue(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 10000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Conditions (JSON, optional)</label>

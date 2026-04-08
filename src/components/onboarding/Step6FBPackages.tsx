@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface FBPackage {
   id: string;
@@ -298,13 +299,48 @@ export default function Step6FBPackages({ courseId }: { courseId: string }) {
                             </select>
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={fbEditPrice} onChange={(e) => setFbEditPrice(parseFloat(e.target.value) || 0)} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <NumberInput step="0.01" min={0} max={1000} value={fbEditPrice} onChange={setFbEditPrice} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={fbEditCost} onChange={(e) => setFbEditCost(e.target.value)} placeholder="Optional" className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setFbEditCost("1000");
+                              }}
+                              step="0.01"
+                              min={0}
+                              max={1000}
+                              value={fbEditCost}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setFbEditCost("1000");
+                                else setFbEditCost(e.target.value);
+                              }}
+                              placeholder="Optional"
+                              className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" value={fbEditCapacity} onChange={(e) => setFbEditCapacity(e.target.value)} placeholder="Optional" className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseInt(e.target.value, 10);
+                                if (!Number.isNaN(v) && v > 1000) setFbEditCapacity("1000");
+                              }}
+                              min={0}
+                              max={1000}
+                              value={fbEditCapacity}
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10);
+                                if (!Number.isNaN(v) && v > 1000) setFbEditCapacity("1000");
+                                else setFbEditCapacity(e.target.value);
+                              }}
+                              placeholder="Optional"
+                              className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
                             <input type="text" value={fbEditDesc} onChange={(e) => setFbEditDesc(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -371,15 +407,51 @@ export default function Step6FBPackages({ courseId }: { courseId: string }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Price per Person</label>
-                    <input type="number" step="0.01" value={fbAddPrice} onChange={(e) => setFbAddPrice(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <NumberInput step="0.01" min={0} max={1000} value={fbAddPrice} onChange={setFbAddPrice} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Cost per Person (optional)</label>
-                    <input type="number" step="0.01" value={fbAddCost} onChange={(e) => setFbAddCost(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setFbAddCost("1000");
+                      }}
+                      step="0.01"
+                      min={0}
+                      max={1000}
+                      value={fbAddCost}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setFbAddCost("1000");
+                        else setFbAddCost(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Capacity Limit (optional)</label>
-                    <input type="number" value={fbAddCapacity} onChange={(e) => setFbAddCapacity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!Number.isNaN(v) && v > 1000) setFbAddCapacity("1000");
+                      }}
+                      min={0}
+                      max={1000}
+                      value={fbAddCapacity}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!Number.isNaN(v) && v > 1000) setFbAddCapacity("1000");
+                        else setFbAddCapacity(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Description (optional)</label>
@@ -443,10 +515,28 @@ export default function Step6FBPackages({ courseId }: { courseId: string }) {
                             </select>
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={barEditPrice} onChange={(e) => setBarEditPrice(parseFloat(e.target.value) || 0)} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <NumberInput step="0.01" min={0} max={1000} value={barEditPrice} onChange={setBarEditPrice} className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={barEditCost} onChange={(e) => setBarEditCost(e.target.value)} placeholder="Optional" className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setBarEditCost("1000");
+                              }}
+                              step="0.01"
+                              min={0}
+                              max={1000}
+                              value={barEditCost}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setBarEditCost("1000");
+                                else setBarEditCost(e.target.value);
+                              }}
+                              placeholder="Optional"
+                              className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
                             <input type="text" value={barEditDesc} onChange={(e) => setBarEditDesc(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -512,11 +602,30 @@ export default function Step6FBPackages({ courseId }: { courseId: string }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Price per Person</label>
-                    <input type="number" step="0.01" value={barAddPrice} onChange={(e) => setBarAddPrice(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <NumberInput step="0.01" min={0} max={1000} value={barAddPrice} onChange={setBarAddPrice} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Cost per Person (optional)</label>
-                    <input type="number" step="0.01" value={barAddCost} onChange={(e) => setBarAddCost(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setBarAddCost("1000");
+                      }}
+                      step="0.01"
+                      min={0}
+                      max={1000}
+                      value={barAddCost}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setBarAddCost("1000");
+                        else setBarAddCost(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm text-gray-600 mb-1">Description (optional)</label>

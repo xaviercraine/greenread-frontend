@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface PerBookingDiff {
   booking_id: string;
@@ -441,13 +442,12 @@ function PricingControl({
       <div className="flex items-center justify-between mb-2">
         <label className="text-sm font-medium text-gray-700">{label}</label>
         <div className="flex items-center gap-2">
-          <input
-            type="number"
+          <NumberInput
             value={value}
             min={min}
             max={max}
             step={step}
-            onChange={(e) => onChange(Number(e.target.value))}
+            onChange={onChange}
             className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right text-gray-900"
           />
           {changed && (

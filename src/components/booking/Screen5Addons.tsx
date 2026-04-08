@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useBooking } from "@/components/booking/BookingContext";
+import NumberInput from "@/components/common/NumberInput";
 
 type Addon = {
   id: string;
@@ -164,16 +165,18 @@ export default function Screen5Addons({ courseId }: { courseId: string }) {
                   </button>
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-gray-500">Qty</label>
-                    <input
-                      type="number"
+                    <NumberInput
+                      integer
                       min={1}
+                      max={isPerPerson ? state.playerCount : 99}
                       disabled={!isSelected}
                       value={isSelected ? selected[addon.id] : defaultQty}
-                      onChange={(e) =>
-                        setQuantity(addon.id, parseInt(e.target.value || "0", 10))
-                      }
+                      onChange={(v) => setQuantity(addon.id, v)}
                       className="w-20 px-2 py-1 rounded border border-gray-300 text-sm disabled:bg-gray-50 disabled:text-gray-400"
                     />
+                    <span className="text-xs text-gray-400">
+                      max {isPerPerson ? state.playerCount : 99}
+                    </span>
                   </div>
                 </div>
               </div>

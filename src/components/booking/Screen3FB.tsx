@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useBooking } from "@/components/booking/BookingContext";
+import NumberInput from "@/components/common/NumberInput";
 
 type FBPackage = {
   id: string;
@@ -216,16 +217,16 @@ export default function Screen3FB({ courseId }: { courseId: string }) {
                     </button>
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-500">Headcount</label>
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
                         min={1}
+                        max={state.playerCount}
                         disabled={!selected}
                         value={selected ? fbSelected[pkg.id] : state.playerCount}
-                        onChange={(e) =>
-                          setFbHeadcount(pkg.id, parseInt(e.target.value || "0", 10))
-                        }
+                        onChange={(v) => setFbHeadcount(pkg.id, v)}
                         className="w-20 px-2 py-1 rounded border border-gray-300 text-sm disabled:bg-gray-50 disabled:text-gray-400"
                       />
+                      <span className="text-xs text-gray-400">max {state.playerCount}</span>
                     </div>
                   </div>
                 </div>
@@ -279,16 +280,16 @@ export default function Screen3FB({ courseId }: { courseId: string }) {
                     </button>
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-500">Headcount</label>
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
                         min={1}
+                        max={state.playerCount}
                         disabled={!selected}
                         value={selected ? barSelected[pkg.id] : state.playerCount}
-                        onChange={(e) =>
-                          setBarHeadcount(pkg.id, parseInt(e.target.value || "0", 10))
-                        }
+                        onChange={(v) => setBarHeadcount(pkg.id, v)}
                         className="w-20 px-2 py-1 rounded border border-gray-300 text-sm disabled:bg-gray-50 disabled:text-gray-400"
                       />
+                      <span className="text-xs text-gray-400">max {state.playerCount}</span>
                     </div>
                   </div>
                 </div>

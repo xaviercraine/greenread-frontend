@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import NumberInput from "@/components/common/NumberInput";
 
 interface RevenueTarget {
   id: string;
@@ -248,13 +249,13 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Soft Threshold (%)</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
+                  <NumberInput
+                    integer
                     min={0}
                     max={100}
                     step={1}
                     value={threshold}
-                    onChange={(e) => { setThreshold(parseInt(e.target.value) || 0); setThresholdSaved(false); }}
+                    onChange={(v) => { setThreshold(v); setThresholdSaved(false); }}
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                   <span className="text-gray-500">%</span>
@@ -333,13 +334,49 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
                             <input type="date" value={editPeriodEnd} onChange={(e) => setEditPeriodEnd(e.target.value)} className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={editTargetAmount} onChange={(e) => setEditTargetAmount(parseFloat(e.target.value) || 0)} className="w-28 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <NumberInput step="0.01" min={0} max={10000000} value={editTargetAmount} onChange={setEditTargetAmount} className="w-28 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.01" value={editBaseline} onChange={(e) => setEditBaseline(e.target.value)} placeholder="Optional" className="w-28 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10000000) setEditBaseline("10000000");
+                              }}
+                              step="0.01"
+                              min={0}
+                              max={10000000}
+                              value={editBaseline}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 10000000) setEditBaseline("10000000");
+                                else setEditBaseline(e.target.value);
+                              }}
+                              placeholder="Optional"
+                              className="w-28 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
-                            <input type="number" step="0.1" value={editGrowth} onChange={(e) => setEditGrowth(e.target.value)} placeholder="Optional" className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input
+                              type="number"
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setEditGrowth("1000");
+                              }}
+                              step="0.1"
+                              min={-100}
+                              max={1000}
+                              value={editGrowth}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!Number.isNaN(v) && v > 1000) setEditGrowth("1000");
+                                else setEditGrowth(e.target.value);
+                              }}
+                              placeholder="Optional"
+                              className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
                           </td>
                           <td className="py-2 pr-4">
                             <input type="text" value={editSource} onChange={(e) => setEditSource(e.target.value)} placeholder="Optional" className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -404,15 +441,52 @@ export default function Step8Revenue({ courseId }: { courseId: string }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Target Amount</label>
-                    <input type="number" step="0.01" value={addTargetAmount} onChange={(e) => setAddTargetAmount(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <NumberInput step="0.01" min={0} max={10000000} value={addTargetAmount} onChange={setAddTargetAmount} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <p className="text-xs text-gray-400 mt-1">max 10000000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Baseline Amount (optional)</label>
-                    <input type="number" step="0.01" value={addBaseline} onChange={(e) => setAddBaseline(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10000000) setAddBaseline("10000000");
+                      }}
+                      step="0.01"
+                      min={0}
+                      max={10000000}
+                      value={addBaseline}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 10000000) setAddBaseline("10000000");
+                        else setAddBaseline(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 10000000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Growth Target % (optional)</label>
-                    <input type="number" step="0.1" value={addGrowth} onChange={(e) => setAddGrowth(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <input
+                      type="number"
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setAddGrowth("1000");
+                      }}
+                      step="0.1"
+                      min={-100}
+                      max={1000}
+                      value={addGrowth}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!Number.isNaN(v) && v > 1000) setAddGrowth("1000");
+                        else setAddGrowth(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">max 1000</p>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Source (optional)</label>

@@ -393,11 +393,26 @@ export default function ParticipantRegisterPage({
               <input
                 id="handicap"
                 type="number"
+                onFocus={(e) => e.target.select()}
+                onBlur={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (!Number.isNaN(v)) {
+                    if (v > 54) setHandicap("54");
+                    else if (v < -10) setHandicap("-10");
+                  }
+                }}
                 step="0.1"
+                min={-10}
+                max={54}
                 value={handicap}
-                onChange={(e) => setHandicap(e.target.value)}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (!Number.isNaN(v) && v > 54) setHandicap("54");
+                  else setHandicap(e.target.value);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
+              <p className="text-xs text-gray-400 mt-1">max 54</p>
             </div>
 
             <div>

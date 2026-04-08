@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface Nine {
   id: string;
@@ -178,18 +179,22 @@ export default function Step2Nines({ courseId }: { courseId: string }) {
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
+                        min={1}
+                        max={18}
                         value={editHoles}
-                        onChange={(e) => setEditHoles(parseInt(e.target.value) || 0)}
+                        onChange={setEditHoles}
                         className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
+                        min={1}
+                        max={50}
                         value={editSortOrder}
-                        onChange={(e) => setEditSortOrder(parseInt(e.target.value) || 0)}
+                        onChange={setEditSortOrder}
                         className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </td>
@@ -288,21 +293,27 @@ export default function Step2Nines({ courseId }: { courseId: string }) {
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Holes</label>
-              <input
-                type="number"
+              <NumberInput
+                integer
+                min={1}
+                max={18}
                 value={addHoles}
-                onChange={(e) => setAddHoles(parseInt(e.target.value) || 0)}
+                onChange={setAddHoles}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              <p className="text-xs text-gray-400 mt-1">max 18</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Sort Order</label>
-              <input
-                type="number"
+              <NumberInput
+                integer
+                min={1}
+                max={50}
                 value={addSortOrder}
-                onChange={(e) => setAddSortOrder(parseInt(e.target.value) || 0)}
+                onChange={setAddSortOrder}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              <p className="text-xs text-gray-400 mt-1">max 50</p>
             </div>
           </div>
           <div className="mt-4 flex gap-2">

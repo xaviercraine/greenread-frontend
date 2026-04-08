@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface FbItem {
   id: string;
@@ -49,6 +50,7 @@ interface CurrentAddonSelection {
 interface ModifySelectionsModalProps {
   bookingId: string;
   courseId: string;
+  playerCount: number;
   currentFb: CurrentFbSelection[];
   currentBar: CurrentBarSelection[];
   currentAddons: CurrentAddonSelection[];
@@ -68,12 +70,15 @@ function fmtMoney(n: number): string {
 export default function ModifySelectionsModal({
   bookingId,
   courseId,
+  playerCount,
   currentFb,
   currentBar,
   currentAddons,
   onClose,
   onSaved,
 }: ModifySelectionsModalProps) {
+  const headcountMax = Math.max(1, playerCount);
+  const addonFlatMax = 99;
   const [tab, setTab] = useState<Tab>("fb");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -176,7 +181,7 @@ export default function ModifySelectionsModal({
     setFbItems((prev) =>
       prev.map((item) =>
         item.id === id
-          ? { ...item, headcount: Math.max(0, Math.min(500, value)) }
+          ? { ...item, headcount: Math.max(0, Math.min(headcountMax, value)) }
           : item
       )
     );
@@ -186,7 +191,7 @@ export default function ModifySelectionsModal({
     setBarItems((prev) =>
       prev.map((item) =>
         item.id === id
-          ? { ...item, headcount: Math.max(0, Math.min(500, value)) }
+          ? { ...item, headcount: Math.max(0, Math.min(headcountMax, value)) }
           : item
       )
     );
@@ -194,11 +199,12 @@ export default function ModifySelectionsModal({
 
   const updateAddonQuantity = (id: string, value: number) => {
     setAddonItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(0, Math.min(999, value)) }
-          : item
-      )
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const itemMax =
+          item.pricing_type === "per_person" ? headcountMax : addonFlatMax;
+        return { ...item, quantity: Math.max(0, Math.min(itemMax, value)) };
+      })
     );
   };
 
@@ -355,19 +361,17 @@ export default function ModifySelectionsModal({
                         <label className="block text-xs text-gray-500 mb-1">
                           Headcount
                         </label>
-                        <input
-                          type="number"
+                        <NumberInput
+                          integer
                           min={0}
-                          max={500}
+                          max={headcountMax}
                           value={item.headcount}
-                          onChange={(e) =>
-                            updateFbHeadcount(
-                              item.id,
-                              parseInt(e.target.value || "0", 10)
-                            )
-                          }
+                          onChange={(v) => updateFbHeadcount(item.id, v)}
                           className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-sm text-right"
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-right">
+                          max {headcountMax}
+                        </p>
                       </div>
                     </div>
                   ))
@@ -409,19 +413,17 @@ export default function ModifySelectionsModal({
                         <label className="block text-xs text-gray-500 mb-1">
                           Headcount
                         </label>
-                        <input
-                          type="number"
+                        <NumberInput
+                          integer
                           min={0}
-                          max={500}
+                          max={headcountMax}
                           value={item.headcount}
-                          onChange={(e) =>
-                            updateBarHeadcount(
-                              item.id,
-                              parseInt(e.target.value || "0", 10)
-                            )
-                          }
+                          onChange={(v) => updateBarHeadcount(item.id, v)}
                           className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-sm text-right"
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-right">
+                          max {headcountMax}
+                        </p>
                       </div>
                     </div>
                   ))
@@ -465,19 +467,24 @@ export default function ModifySelectionsModal({
                             ? "Quantity (per person)"
                             : "Quantity"}
                         </label>
-                        <input
-                          type="number"
+                        <NumberInput
+                          integer
                           min={0}
-                          max={999}
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateAddonQuantity(
-                              item.id,
-                              parseInt(e.target.value || "0", 10)
-                            )
+                          max={
+                            item.pricing_type === "per_person"
+                              ? headcountMax
+                              : addonFlatMax
                           }
+                          value={item.quantity}
+                          onChange={(v) => updateAddonQuantity(item.id, v)}
                           className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-sm text-right"
                         />
+                        <p className="text-xs text-gray-400 mt-1 text-right">
+                          max{" "}
+                          {item.pricing_type === "per_person"
+                            ? headcountMax
+                            : addonFlatMax}
+                        </p>
                       </div>
                     </div>
                   ))

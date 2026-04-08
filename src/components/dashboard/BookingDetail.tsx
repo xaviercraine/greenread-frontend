@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { callEdgeFunction } from "@/lib/edgeFunction";
 import type { Booking, PricingSnapshot } from "./BookingTable";
+import NumberInput from "@/components/common/NumberInput";
 
 interface CancellationTier {
   refund_pct: number;
@@ -1067,13 +1068,24 @@ export default function BookingDetail({
                 </label>
                 <input
                   type="number"
+                  onFocus={(e) => e.target.select()}
+                  onBlur={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!Number.isNaN(v) && v > 1000000) setNewPrice("1000000");
+                  }}
                   value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!Number.isNaN(v) && v > 1000000) setNewPrice("1000000");
+                    else setNewPrice(e.target.value);
+                  }}
                   required
                   step="0.01"
                   min="0"
+                  max="1000000"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+                <p className="text-xs text-gray-400 mt-1">max 1000000</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1162,25 +1174,33 @@ export default function BookingDetail({
                               {row.meal_type ? ` · ${row.meal_type}` : ""}
                             </p>
                           </div>
-                          <input
-                            type="number"
-                            min={0}
-                            value={row.headcount}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
-                              setFbSelections((prev) =>
-                                prev.map((s) =>
-                                  s.id === row.id
-                                    ? {
-                                        ...s,
-                                        headcount: Number.isNaN(v) ? 0 : Math.max(0, v),
-                                      }
-                                    : s
-                                )
-                              );
-                            }}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                          />
+                          <div className="flex flex-col items-end">
+                            <NumberInput
+                              integer
+                              min={0}
+                              max={booking.player_count}
+                              value={row.headcount}
+                              onChange={(v) => {
+                                setFbSelections((prev) =>
+                                  prev.map((s) =>
+                                    s.id === row.id
+                                      ? {
+                                          ...s,
+                                          headcount: Math.max(
+                                            0,
+                                            Math.min(booking.player_count, v),
+                                          ),
+                                        }
+                                      : s
+                                  )
+                                );
+                              }}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
+                            <span className="text-xs text-gray-400 mt-1">
+                              max {booking.player_count}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1215,25 +1235,33 @@ export default function BookingDetail({
                               {row.bar_type ? ` · ${row.bar_type}` : ""}
                             </p>
                           </div>
-                          <input
-                            type="number"
-                            min={0}
-                            value={row.headcount}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
-                              setBarSelections((prev) =>
-                                prev.map((s) =>
-                                  s.id === row.id
-                                    ? {
-                                        ...s,
-                                        headcount: Number.isNaN(v) ? 0 : Math.max(0, v),
-                                      }
-                                    : s
-                                )
-                              );
-                            }}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                          />
+                          <div className="flex flex-col items-end">
+                            <NumberInput
+                              integer
+                              min={0}
+                              max={booking.player_count}
+                              value={row.headcount}
+                              onChange={(v) => {
+                                setBarSelections((prev) =>
+                                  prev.map((s) =>
+                                    s.id === row.id
+                                      ? {
+                                          ...s,
+                                          headcount: Math.max(
+                                            0,
+                                            Math.min(booking.player_count, v),
+                                          ),
+                                        }
+                                      : s
+                                  )
+                                );
+                              }}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
+                            <span className="text-xs text-gray-400 mt-1">
+                              max {booking.player_count}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1267,25 +1295,41 @@ export default function BookingDetail({
                               {row.pricing_type ? ` · ${row.pricing_type}` : ""}
                             </p>
                           </div>
-                          <input
-                            type="number"
-                            min={0}
-                            value={row.quantity}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
-                              setAddonSelections((prev) =>
-                                prev.map((s) =>
-                                  s.id === row.id
-                                    ? {
-                                        ...s,
-                                        quantity: Number.isNaN(v) ? 0 : Math.max(0, v),
-                                      }
-                                    : s
-                                )
-                              );
-                            }}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                          />
+                          {(() => {
+                            const addonMax =
+                              row.pricing_type === "per_person"
+                                ? booking.player_count
+                                : 99;
+                            return (
+                              <div className="flex flex-col items-end">
+                                <NumberInput
+                                  integer
+                                  min={0}
+                                  max={addonMax}
+                                  value={row.quantity}
+                                  onChange={(v) => {
+                                    setAddonSelections((prev) =>
+                                      prev.map((s) =>
+                                        s.id === row.id
+                                          ? {
+                                              ...s,
+                                              quantity: Math.max(
+                                                0,
+                                                Math.min(addonMax, v),
+                                              ),
+                                            }
+                                          : s
+                                      )
+                                    );
+                                  }}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                />
+                                <span className="text-xs text-gray-400 mt-1">
+                                  max {addonMax}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

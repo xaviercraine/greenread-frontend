@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface EventSpace {
   id: string;
@@ -177,18 +178,22 @@ export default function Step4EventSpaces({ courseId }: { courseId: string }) {
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
+                        min={0}
+                        max={1000}
                         value={editMinCap}
-                        onChange={(e) => setEditMinCap(parseInt(e.target.value) || 0)}
+                        onChange={setEditMinCap}
                         className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <input
-                        type="number"
+                      <NumberInput
+                        integer
+                        min={0}
+                        max={1000}
                         value={editMaxCap}
-                        onChange={(e) => setEditMaxCap(parseInt(e.target.value) || 0)}
+                        onChange={setEditMaxCap}
                         className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </td>
@@ -313,21 +318,27 @@ export default function Step4EventSpaces({ courseId }: { courseId: string }) {
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Min Capacity</label>
-              <input
-                type="number"
+              <NumberInput
+                integer
+                min={0}
+                max={1000}
                 value={addMinCap}
-                onChange={(e) => setAddMinCap(parseInt(e.target.value) || 0)}
+                onChange={setAddMinCap}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              <p className="text-xs text-gray-400 mt-1">max 1000</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Max Capacity</label>
-              <input
-                type="number"
+              <NumberInput
+                integer
+                min={0}
+                max={1000}
                 value={addMaxCap}
-                onChange={(e) => setAddMaxCap(parseInt(e.target.value) || 0)}
+                onChange={setAddMaxCap}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              <p className="text-xs text-gray-400 mt-1">max 1000</p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Pricing Tier</label>

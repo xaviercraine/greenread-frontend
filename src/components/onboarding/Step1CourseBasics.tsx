@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NumberInput from "@/components/common/NumberInput";
 
 interface CourseData {
   name: string;
@@ -169,16 +170,26 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
     </div>
   );
 
-  const numberField = (label: string, field: keyof CourseData, step?: string) => (
+  const numberField = (
+    label: string,
+    field: keyof CourseData,
+    step?: string,
+    max?: number,
+  ) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type="number"
+      <NumberInput
+        integer={!step}
         step={step}
+        min={0}
+        max={max}
         value={form[field] as number}
-        onChange={(e) => handleChange(field, step ? parseFloat(e.target.value) || 0 : parseInt(e.target.value) || 0)}
+        onChange={(v) => handleChange(field, v)}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
       />
+      {max != null && (
+        <p className="text-xs text-gray-400 mt-1">max {max}</p>
+      )}
     </div>
   );
 
@@ -212,16 +223,16 @@ export default function Step1CourseBasics({ courseId }: { courseId: string }) {
 
       <div className="grid grid-cols-2 gap-6">
         {textField("Course Name", "name")}
-        {numberField("Total Carts", "total_carts")}
-        {numberField("Players per Cart", "players_per_cart")}
-        {numberField("Kitchen Capacity", "kitchen_capacity")}
+        {numberField("Total Carts", "total_carts", undefined, 200)}
+        {numberField("Players per Cart", "players_per_cart", undefined, 5)}
+        {numberField("Kitchen Capacity", "kitchen_capacity", undefined, 1000)}
         {timeField("Operating Hours Start", "operating_hours_start")}
         {timeField("Operating Hours End", "operating_hours_end")}
         {dateField("Season Start", "season_start")}
         {dateField("Season End", "season_end")}
-        {numberField("Min Booking Notice (days)", "min_booking_notice_days")}
-        {numberField("Max Advance Booking (days)", "max_advance_booking_days")}
-        {numberField("F&B Minimum Spend", "fb_minimum_spend", "0.01")}
+        {numberField("Min Booking Notice (days)", "min_booking_notice_days", undefined, 365)}
+        {numberField("Max Advance Booking (days)", "max_advance_booking_days", undefined, 730)}
+        {numberField("F&B Minimum Spend", "fb_minimum_spend", "0.01", 100000)}
       </div>
 
       {error && (
