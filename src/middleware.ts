@@ -33,10 +33,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+  // Public booking pages: /book/<courseSlug> is accessible without auth.
+  // /book/new still requires auth (organizer-side flow).
+  const isPublicBookingPage =
+    pathname.startsWith("/book/") && !pathname.startsWith("/book/new");
+
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/auth") &&
+    !isPublicBookingPage
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
