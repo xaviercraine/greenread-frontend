@@ -142,6 +142,29 @@ export default function BookingDetail({
     booking.status === "balance_paid" ||
     booking.status === "confirmed";
 
+  const canManageFoursomes =
+    booking.status === "deposit_paid" ||
+    booking.status === "balance_paid" ||
+    booking.status === "confirmed";
+
+  const [participantCount, setParticipantCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!canManageFoursomes) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { count } = await supabase
+        .from("participants")
+        .select("id", { count: "exact", head: true })
+        .eq("booking_id", booking.id);
+      if (!cancelled) setParticipantCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.id, canManageFoursomes]);
+
   const [showModifySelections, setShowModifySelections] = useState(false);
   const [modifyLoading, setModifyLoading] = useState(false);
   const [modifySubmitting, setModifySubmitting] = useState(false);
@@ -729,6 +752,14 @@ export default function BookingDetail({
                 >
                   Modify Selections
                 </button>
+              )}
+              {canManageFoursomes && participantCount > 0 && (
+                <Link
+                  href={`/foursomes/${booking.id}`}
+                  className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-100 rounded-lg hover:bg-emerald-200"
+                >
+                  Manage Foursomes
+                </Link>
               )}
               {canCancelBooking && (
                 <button
