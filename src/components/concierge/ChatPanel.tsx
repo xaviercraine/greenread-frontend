@@ -26,6 +26,14 @@ type Message = {
 
 const ACCENT = "#2D6A4F";
 
+const STEPS: { type: string; label: string }[] = [
+  { type: "dates", label: "Dates" },
+  { type: "formats", label: "Format" },
+  { type: "fb_options", label: "F&B" },
+  { type: "addons", label: "Add-ons" },
+  { type: "pricing", label: "Pricing" },
+];
+
 const SESSION_KEY = "greenread_concierge_session";
 const MESSAGES_KEY = "greenread_concierge_messages";
 const CONVERSATION_KEY = "greenread_concierge_conversation_id";
@@ -333,7 +341,7 @@ function StructuredDataRenderer({
               type="button"
               disabled={disabled}
               onClick={() =>
-                onSend(`I'd like ${p.name} for ${playerCount} people`)
+                onSend(`I'd like ${p.name}`)
               }
               className="flex w-full items-center justify-between rounded-lg border bg-white p-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: `${ACCENT}40` }}
@@ -554,6 +562,30 @@ export default function ChatPanel() {
     }
   }, [messages, loading, open]);
 
+  // Compute first message index per structured_data type for the step indicator
+  const stepFirstIndex: Record<string, number> = {};
+  messages.forEach((msg, i) => {
+    if (msg.structured_data) {
+      msg.structured_data.forEach((item) => {
+        if (!(item.type in stepFirstIndex)) {
+          stepFirstIndex[item.type] = i;
+        }
+      });
+    }
+  });
+  const currentStepIdx = STEPS.reduce(
+    (acc, step, idx) => (step.type in stepFirstIndex ? idx : acc),
+    -1
+  );
+  const showStepIndicator = currentStepIdx >= 0;
+
+  const scrollToStep = (type: string) => {
+    const idx = stepFirstIndex[type];
+    if (idx === undefined) return;
+    const el = document.getElementById(`concierge-msg-${idx}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (!user) return null;
   if (pathname?.startsWith("/book/new")) return null;
 
@@ -761,6 +793,40 @@ export default function ChatPanel() {
           </div>
         </div>
 
+        {/* Step Indicator */}
+        {showStepIndicator && (
+          <div className="border-b border-gray-200 px-3 py-2 bg-white">
+            <div className="flex items-center gap-1">
+              {STEPS.map((step, idx) => {
+                const isCompleted = idx < currentStepIdx;
+                const isCurrent = idx === currentStepIdx;
+                const className = isCompleted
+                  ? "bg-green-600 text-white rounded-full px-2 py-0.5 text-xs cursor-pointer"
+                  : isCurrent
+                  ? "bg-green-100 text-green-800 border border-green-600 rounded-full px-2 py-0.5 text-xs font-medium"
+                  : "bg-gray-100 text-gray-400 rounded-full px-2 py-0.5 text-xs";
+                return (
+                  <div key={step.type} className="flex items-center gap-1">
+                    {idx > 0 && (
+                      <span className="text-xs text-gray-300">→</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={
+                        isCompleted ? () => scrollToStep(step.type) : undefined
+                      }
+                      disabled={!isCompleted}
+                      className={className}
+                    >
+                      {step.label}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Messages */}
         <div
           ref={scrollRef}
@@ -777,7 +843,7 @@ export default function ChatPanel() {
                 return null;
               }
               return (
-                <div key={i}>
+                <div key={i} id={`concierge-msg-${i}`}>
                   <StructuredDataRenderer
                     items={msg.structured_data}
                     onSend={handleQuickSend}
@@ -796,7 +862,11 @@ export default function ChatPanel() {
             }
             if (msg.role === "user") {
               return (
-                <div key={i} className="flex justify-end">
+                <div
+                  key={i}
+                  id={`concierge-msg-${i}`}
+                  className="flex justify-end"
+                >
                   <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-green-600 text-white px-4 py-2 text-sm whitespace-pre-wrap break-words">
                     {msg.content}
                   </div>
@@ -804,7 +874,11 @@ export default function ChatPanel() {
               );
             }
             return (
-              <div key={i} className="flex justify-start">
+              <div
+                key={i}
+                id={`concierge-msg-${i}`}
+                className="flex justify-start"
+              >
                 <div
                   className={`max-w-[85%] rounded-2xl rounded-bl-sm px-4 py-2 text-sm shadow-sm break-words ${
                     msg.error
