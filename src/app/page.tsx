@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import SummaryCards from "@/components/dashboard/SummaryCards";
@@ -15,6 +16,8 @@ import EscalatedConversations from "@/components/dashboard/EscalatedConversation
 export default function HomePage() {
   const { user, loading: authLoading, courseId } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const requestedBookingId = searchParams.get("booking");
 
   // Summary state
   const [totalBookings, setTotalBookings] = useState<number | null>(null);
@@ -264,6 +267,14 @@ export default function HomePage() {
       fetchRevenueBreakdown();
     }
   }, [authLoading, courseId, fetchSummary, fetchBookings, fetchRevenueBreakdown]);
+
+  // Auto-open booking detail when navigated with ?booking={id}
+  useEffect(() => {
+    if (!requestedBookingId || bookings.length === 0) return;
+    if (selectedBooking?.id === requestedBookingId) return;
+    const match = bookings.find((b) => b.id === requestedBookingId);
+    if (match) setSelectedBooking(match);
+  }, [requestedBookingId, bookings, selectedBooking]);
 
   const handleCancelDraft = async (bookingId: string) => {
     const { error } = await supabase
