@@ -74,7 +74,7 @@ function StructuredCard({
 }) {
   return (
     <div
-      className="rounded-xl border bg-white p-3 text-xs"
+      className="relative rounded-xl border bg-white p-3 text-xs"
       style={{ borderColor: `${ACCENT}40` }}
     >
       {children}
@@ -147,6 +147,40 @@ function CollapsibleMessage({
   );
 }
 
+function ConfirmModal({
+  onCancel,
+  onContinue,
+}: {
+  onCancel: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-lg p-6 max-w-xs mx-auto">
+        <p className="text-sm text-gray-700 text-center mb-4">
+          Editing this will clear all messages after this point. Continue?
+        </p>
+        <div className="flex gap-2 justify-center">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StructuredDataRenderer({
   items,
   onSend,
@@ -154,6 +188,7 @@ function StructuredDataRenderer({
   onNavigate,
   onClose,
   bookingWindow,
+  onEdit,
 }: {
   items: StructuredDataItem[];
   onSend: (text: string) => void;
@@ -161,7 +196,21 @@ function StructuredDataRenderer({
   onNavigate: (path: string) => void;
   onClose: () => void;
   bookingWindow: BookingWindow;
+  onEdit?: () => void;
 }) {
+  const editButton = onEdit ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onEdit();
+      }}
+      className="text-xs text-gray-400 hover:text-green-700 cursor-pointer absolute top-2 right-2"
+      aria-label="Edit selection"
+    >
+      Edit ✏️
+    </button>
+  ) : null;
   return (
     <div className="mt-2 space-y-2">
       {items.map((item, idx) => {
@@ -180,6 +229,7 @@ function StructuredDataRenderer({
               | undefined) ?? [];
           return (
             <StructuredCard key={idx}>
+              {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
                 📅 {dates.length} available date{dates.length === 1 ? "" : "s"}
               </div>
@@ -234,6 +284,7 @@ function StructuredDataRenderer({
             }>) ?? [];
           return (
             <StructuredCard key={idx}>
+              {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
                 ⛳ Formats
               </div>
@@ -297,6 +348,7 @@ function StructuredDataRenderer({
           );
           return (
             <StructuredCard key={idx}>
+              {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
                 🍽️ Food & Beverage Options
               </div>
@@ -329,6 +381,7 @@ function StructuredDataRenderer({
             (data?.addons as Array<{ name: string; price?: number }>) ?? [];
           return (
             <StructuredCard key={idx}>
+              {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
                 ➕ Add-ons
               </div>
@@ -368,6 +421,7 @@ function StructuredDataRenderer({
           const draftId = draft?.id ? String(draft.id) : null;
           return (
             <StructuredCard key={idx}>
+              {editButton}
               <div
                 className="flex items-center justify-between font-semibold"
                 style={{ color: ACCENT }}
@@ -443,6 +497,8 @@ export default function ChatPanel() {
   const [escalated, setEscalated] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [viewMode, setViewMode] = useState<"chat" | "selections">("chat");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingEditIndex, setPendingEditIndex] = useState<number | null>(null);
 
   // Reset view mode whenever the panel opens
   useEffect(() => {
@@ -583,6 +639,33 @@ export default function ChatPanel() {
     await sendMessage(userText);
   };
 
+  const handleEditStructured = (messageIndex: number) => {
+    setPendingEditIndex(messageIndex);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmEdit = () => {
+    if (pendingEditIndex === null) {
+      setConfirmOpen(false);
+      return;
+    }
+    const messageIndex = pendingEditIndex;
+    setMessages((prev) => {
+      const trimmed = prev.slice(0, messageIndex + 1);
+      try {
+        localStorage.setItem(MESSAGES_KEY, JSON.stringify(trimmed));
+      } catch {}
+      return trimmed;
+    });
+    setConfirmOpen(false);
+    setPendingEditIndex(null);
+  };
+
+  const handleCancelEdit = () => {
+    setConfirmOpen(false);
+    setPendingEditIndex(null);
+  };
+
   const handleNewChat = () => {
     try {
       localStorage.removeItem(SESSION_KEY);
@@ -702,6 +785,11 @@ export default function ChatPanel() {
                     onNavigate={(path) => router.push(path)}
                     onClose={() => setOpen(false)}
                     bookingWindow={bookingWindow}
+                    onEdit={
+                      i < messages.length - 1
+                        ? () => handleEditStructured(i)
+                        : undefined
+                    }
                   />
                 </div>
               );
@@ -745,6 +833,11 @@ export default function ChatPanel() {
                       onNavigate={(path) => router.push(path)}
                       onClose={() => setOpen(false)}
                       bookingWindow={bookingWindow}
+                      onEdit={
+                        i < messages.length - 1
+                          ? () => handleEditStructured(i)
+                          : undefined
+                      }
                     />
                   )}
                 </div>
@@ -786,6 +879,13 @@ export default function ChatPanel() {
           </button>
         </form>
       </div>
+
+      {confirmOpen && (
+        <ConfirmModal
+          onCancel={handleCancelEdit}
+          onContinue={handleConfirmEdit}
+        />
+      )}
     </>
   );
 }
