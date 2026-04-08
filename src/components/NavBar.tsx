@@ -45,6 +45,12 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
                 </Link>
               </div>
               <Link
+                href="/quick-quote"
+                className="text-sm font-medium text-gray-700 hover:text-green-700"
+              >
+                Quick Quote
+              </Link>
+              <Link
                 href="/calendar"
                 className="text-sm font-medium text-gray-700 hover:text-green-700"
               >
