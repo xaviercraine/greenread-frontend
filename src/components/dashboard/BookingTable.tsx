@@ -27,7 +27,7 @@ export interface PricingSnapshotData {
   addon_total?: number;
   subtotal?: number;
   hst?: number;
-  displacement_floor?: number | null;
+  displacement_floor?: { floor_amount: number; displacement_cost: number; below_floor?: boolean } | null;
   fb_line_items?: Record<string, unknown>[] | null;
   bar_line_items?: Record<string, unknown>[] | null;
   addon_line_items?: Record<string, unknown>[] | null;
