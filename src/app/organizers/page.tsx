@@ -59,6 +59,7 @@ export default function OrganizersPage() {
   const [tokens, setTokens] = useState<RegistrationToken[]>([]);
   const [tokensLoading, setTokensLoading] = useState(true);
   const [tokensError, setTokensError] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -336,6 +337,9 @@ export default function OrganizersPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -346,7 +350,23 @@ export default function OrganizersPage() {
                     return (
                       <tr key={t.token}>
                         <td className="px-6 py-4 text-xs font-mono text-gray-700 break-all">
-                          {t.token.slice(0, 16)}…
+                          {t.booking_id ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                window.open(
+                                  `/portal/${t.booking_id}?token=${t.token}`,
+                                  "_blank"
+                                )
+                              }
+                              className="text-left text-blue-600 hover:text-blue-800 hover:underline break-all"
+                              title="Open portal page in new tab"
+                            >
+                              {t.token}
+                            </button>
+                          ) : (
+                            <span className="break-all">{t.token}</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-xs font-mono text-gray-500">
                           {t.booking_id ? t.booking_id.slice(0, 8) : "—"}
@@ -366,6 +386,34 @@ export default function OrganizersPage() {
                             <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs">
                               Active
                             </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {t.booking_id ? (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const url = `${window.location.origin}/portal/${t.booking_id}?token=${t.token}`;
+                                try {
+                                  await navigator.clipboard.writeText(url);
+                                  setCopiedToken(t.token);
+                                  setTimeout(() => {
+                                    setCopiedToken((prev) =>
+                                      prev === t.token ? null : prev
+                                    );
+                                  }, 2000);
+                                } catch {
+                                  // ignore
+                                }
+                              }}
+                              className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs font-medium"
+                            >
+                              {copiedToken === t.token
+                                ? "Copied!"
+                                : "Copy Portal Link"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
                       </tr>

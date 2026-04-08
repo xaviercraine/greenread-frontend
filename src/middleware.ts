@@ -39,11 +39,16 @@ export async function middleware(request: NextRequest) {
   const isPublicBookingPage =
     pathname.startsWith("/book/") && !pathname.startsWith("/book/new");
 
+  // Organizer portal and registration pages are token-authenticated, no Supabase auth.
+  const isPublicPortalPage =
+    pathname.startsWith("/portal/") || pathname.startsWith("/register/");
+
   if (
     !user &&
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/auth") &&
-    !isPublicBookingPage
+    !isPublicBookingPage &&
+    !isPublicPortalPage
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
