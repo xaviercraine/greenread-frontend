@@ -134,6 +134,132 @@ export default function BookingDetail({
   const [cancelBookingError, setCancelBookingError] = useState<string | null>(null);
   const [cancelBookingSuccess, setCancelBookingSuccess] = useState<string | null>(null);
 
+  const [showEmail, setShowEmail] = useState(false);
+  const [emailSending, setEmailSending] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
+  const [emailFallback, setEmailFallback] = useState<
+    { template: string; content: string } | null
+  >(null);
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  const canSendEmail =
+    booking.status === "deposit_paid" ||
+    booking.status === "balance_paid" ||
+    booking.status === "confirmed";
+
+  const EMAIL_TEMPLATES: { key: string; label: string }[] = [
+    { key: "booking_confirmation", label: "Booking Confirmation" },
+    { key: "balance_due_reminder", label: "Balance Due Reminder" },
+    { key: "registration_link", label: "Registration Link" },
+  ];
+
+  const generateEmailContent = async (template: string): Promise<string> => {
+    const dateStr = new Date(booking.date + "T00:00:00").toLocaleDateString(
+      "en-US",
+      { weekday: "long", month: "long", day: "numeric", year: "numeric" }
+    );
+    if (template === "booking_confirmation") {
+      const total = snapshot?.snapshot?.total ?? 0;
+      const deposit = booking.deposit_amount ?? 0;
+      return [
+        "Booking Confirmation",
+        "",
+        `Date: ${dateStr}`,
+        `Format: ${booking.tournament_formats?.name ?? "—"}`,
+        `Players: ${booking.player_count}`,
+        `Total: $${Number(total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        `Deposit: $${Number(deposit).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      ].join("\n");
+    }
+    if (template === "balance_due_reminder") {
+      const balance = booking.balance_amount ?? 0;
+      return [
+        "Balance Due Reminder",
+        "",
+        `Booking Date: ${dateStr}`,
+        `Balance Due: $${Number(balance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      ].join("\n");
+    }
+    if (template === "registration_link") {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("registration_tokens")
+          .select("token")
+          .eq("booking_id", booking.id)
+          .maybeSingle();
+        const token = (data as { token?: string } | null)?.token;
+        if (!token) {
+          return "No registration token found for this booking.";
+        }
+        const origin =
+          typeof window !== "undefined" ? window.location.origin : "";
+        return [
+          "Registration Link",
+          "",
+          `${origin}/register/${booking.id}?token=${token}`,
+        ].join("\n");
+      } catch {
+        return "Failed to load registration token.";
+      }
+    }
+    return "";
+  };
+
+  const handleSendEmail = async (template: string) => {
+    setEmailSending(template);
+    setEmailFallback(null);
+    setEmailSuccess(null);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: template,
+            params: {
+              booking_id: booking.id,
+              course_id: booking.course_id,
+            },
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("not configured");
+      const data = await res.json().catch(() => null);
+      if (data && data.error) throw new Error(data.error);
+      setEmailSuccess("Email sent successfully.");
+    } catch {
+      const content = await generateEmailContent(template);
+      setEmailFallback({ template, content });
+    } finally {
+      setEmailSending(null);
+    }
+  };
+
+  const handleCopyEmail = async () => {
+    if (!emailFallback) return;
+    try {
+      await navigator.clipboard.writeText(emailFallback.content);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const closeEmailModal = () => {
+    if (emailSending) return;
+    setShowEmail(false);
+    setEmailFallback(null);
+    setEmailSuccess(null);
+    setEmailCopied(false);
+  };
+
   const canCancelBooking =
     booking.status === "deposit_paid" || booking.status === "balance_paid";
 
@@ -769,7 +895,19 @@ export default function BookingDetail({
                   Cancel Booking
                 </button>
               )}
+              {canSendEmail && (
+                <button
+                  onClick={() => setShowEmail(true)}
+                  className="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-100 rounded-lg hover:bg-indigo-200"
+                >
+                  Send Email
+                </button>
+              )}
             </div>
+
+            {emailSuccess && !showEmail && (
+              <p className="mt-3 text-sm text-green-600">{emailSuccess}</p>
+            )}
 
             {modifySuccess && (
               <p className="mt-3 text-sm text-green-600">{modifySuccess}</p>
@@ -1177,6 +1315,81 @@ export default function BookingDetail({
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 )}
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Email Modal */}
+      {showEmail && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={closeEmailModal}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Send Email
+            </h3>
+
+            <p className="text-sm text-gray-600 mb-3">
+              Choose an email template to send to the organizer.
+            </p>
+
+            <div className="space-y-2">
+              {EMAIL_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.key}
+                  onClick={() => handleSendEmail(tpl.key)}
+                  disabled={emailSending !== null}
+                  className="w-full px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 disabled:opacity-50 flex items-center justify-between"
+                >
+                  <span>{tpl.label}</span>
+                  {emailSending === tpl.key && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-700"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {emailSuccess && (
+              <p className="mt-4 text-sm text-green-600">{emailSuccess}</p>
+            )}
+
+            {emailFallback && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mb-3">
+                  Email service not yet configured. Email content shown below
+                  for manual sending.
+                </p>
+                <textarea
+                  readOnly
+                  value={emailFallback.content}
+                  rows={10}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <div className="mt-2 flex items-center gap-3">
+                  <button
+                    onClick={handleCopyEmail}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                  >
+                    Copy to Clipboard
+                  </button>
+                  {emailCopied && (
+                    <span className="text-sm text-green-600">Copied!</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={closeEmailModal}
+                disabled={emailSending !== null}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                Close
               </button>
             </div>
           </div>
