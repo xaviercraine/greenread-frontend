@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import NavBar from "@/components/NavBar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import RevenueBreakdownCards from "@/components/dashboard/RevenueBreakdownCards";
 import BookingTable, {
@@ -293,9 +292,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar escalatedCount={escalatedCount ?? 0} />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 min-h-[calc(100vh-64px)] flex flex-col">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
         <SummaryCards
           totalBookings={totalBookings}
           upcomingBookings={upcomingBookings}

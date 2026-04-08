@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import ChatPanel from "@/components/concierge/ChatPanel";
+import GlobalNav from "@/components/GlobalNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
+          <GlobalNav />
           {children}
           <ChatPanel />
         </AuthProvider>

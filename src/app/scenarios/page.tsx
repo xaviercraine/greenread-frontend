@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import NavBar from "@/components/NavBar";
 
 interface PerBookingDiff {
   booking_id: string;
@@ -204,12 +203,10 @@ export default function ScenariosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Pricing Scenarios
+            Scenario Builder
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Adjust pricing rules and see the projected impact on season revenue.

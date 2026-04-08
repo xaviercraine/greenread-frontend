@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/components/AuthProvider";
-import NavBar from "@/components/NavBar";
 import SummaryStrip from "@/components/booking/SummaryStrip";
 import Screen1Setup from "@/components/booking/Screen1Setup";
 import Screen2Dates from "@/components/booking/Screen2Dates";
@@ -43,7 +42,6 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <NavBar />
       <SummaryStrip />
 
       <div className="max-w-7xl mx-auto px-8 pt-4 flex justify-end">

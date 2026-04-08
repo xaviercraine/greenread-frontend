@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import NavBar from "@/components/NavBar";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
 import DatePopover from "@/components/calendar/DatePopover";
 import PipelineView from "@/components/calendar/PipelineView";
@@ -77,12 +77,16 @@ function monthRange(year: number, month: number): { start: string; end: string }
   return { start, end };
 }
 
-export default function CalendarPage() {
+function CalendarPageInner() {
   const { user, loading: authLoading, courseId } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
+  const searchParams = useSearchParams();
+  const initialView: ViewMode =
+    searchParams?.get("view") === "pipeline" ? "pipeline" : "calendar";
+
   const today = useMemo(() => new Date(), []);
-  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 
@@ -458,8 +462,6 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* View toggle */}
         <div className="flex items-center justify-between">
@@ -575,5 +577,19 @@ export default function CalendarPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+        </div>
+      }
+    >
+      <CalendarPageInner />
+    </Suspense>
   );
 }

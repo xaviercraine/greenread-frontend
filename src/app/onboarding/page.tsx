@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { createClient } from "@/lib/supabase/client";
 import Step1CourseBasics from "@/components/onboarding/Step1CourseBasics";
 import Step2Nines from "@/components/onboarding/Step2Nines";
 import Step3Rotations from "@/components/onboarding/Step3Rotations";
@@ -27,31 +25,8 @@ const STEP_LABELS = [
 const MAX_STEP = 8;
 
 export default function OnboardingPage() {
-  const { user, loading, courseId, signOut } = useAuth();
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+  const { user, loading, courseId } = useAuth();
   const [step, setStep] = useState<number>(1);
-  const [dataMode, setDataMode] = useState<string | null>(null);
-  const [dataModeLoading, setDataModeLoading] = useState(true);
-
-  useEffect(() => {
-    if (!courseId) return;
-    let cancelled = false;
-    const fetchDataMode = async () => {
-      setDataModeLoading(true);
-      const { data } = await supabase
-        .from("courses")
-        .select("data_mode")
-        .eq("id", courseId)
-        .single();
-      if (!cancelled) {
-        setDataMode(data?.data_mode ?? null);
-        setDataModeLoading(false);
-      }
-    };
-    fetchDataMode();
-    return () => { cancelled = true; };
-  }, [courseId, supabase]);
 
   if (loading) {
     return (
@@ -94,41 +69,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1
-              className="text-xl font-bold text-green-700 cursor-pointer"
-              onClick={() => router.push("/")}
-            >
-              Greenread
-            </h1>
-            <div className="flex items-center gap-4">
-              {!dataModeLoading && dataMode && (
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    dataMode === "real"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {dataMode === "real" ? "Real Data" : "Fictional Data"}
-                </span>
-              )}
-              <span className="text-sm text-gray-600">{user.email}</span>
-              <button
-                onClick={signOut}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-64px)]">
+        <h1 className="text-2xl font-bold mb-6">Course Setup</h1>
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">

@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import NavBar from "@/components/NavBar";
 import { createClient } from "@/lib/supabase/client";
 
 type TournamentFormat = {
@@ -274,7 +273,6 @@ export default function QuickQuotePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <NavBar />
       <main className="max-w-5xl mx-auto px-8 py-8 space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Quick Quote</h1>

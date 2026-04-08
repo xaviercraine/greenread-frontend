@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import NavBar from "@/components/NavBar";
 
 interface SeasonTotals {
   total_bookings?: number;
@@ -239,8 +238,6 @@ export default function SimulatorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
