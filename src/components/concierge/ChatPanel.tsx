@@ -442,6 +442,12 @@ export default function ChatPanel() {
   const [loading, setLoading] = useState(false);
   const [escalated, setEscalated] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [viewMode, setViewMode] = useState<"chat" | "selections">("chat");
+
+  // Reset view mode whenever the panel opens
+  useEffect(() => {
+    if (open) setViewMode("chat");
+  }, [open]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -630,6 +636,30 @@ export default function ChatPanel() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <div className="inline-flex items-center rounded-full bg-gray-100 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("chat")}
+                className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
+                  viewMode === "chat"
+                    ? "bg-green-600 text-white"
+                    : "text-gray-600"
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("selections")}
+                className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
+                  viewMode === "selections"
+                    ? "bg-green-600 text-white"
+                    : "text-gray-600"
+                }`}
+              >
+                Selections only
+              </button>
+            </div>
             <button
               type="button"
               onClick={handleNewChat}
@@ -659,6 +689,23 @@ export default function ChatPanel() {
             </p>
           )}
           {messages.map((msg, i) => {
+            if (viewMode === "selections") {
+              if (!msg.structured_data || msg.structured_data.length === 0) {
+                return null;
+              }
+              return (
+                <div key={i}>
+                  <StructuredDataRenderer
+                    items={msg.structured_data}
+                    onSend={handleQuickSend}
+                    disabled={loading}
+                    onNavigate={(path) => router.push(path)}
+                    onClose={() => setOpen(false)}
+                    bookingWindow={bookingWindow}
+                  />
+                </div>
+              );
+            }
             if (msg.role === "user") {
               return (
                 <div key={i} className="flex justify-end">
@@ -704,7 +751,7 @@ export default function ChatPanel() {
               </div>
             );
           })}
-          {loading && (
+          {loading && viewMode === "chat" && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-bl-sm bg-white border border-gray-200 px-4 py-3 shadow-sm">
                 <div className="flex gap-1 items-center">
