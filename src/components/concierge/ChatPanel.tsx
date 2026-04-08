@@ -103,6 +103,50 @@ function CollapsibleJson({ data }: { data: unknown }) {
   );
 }
 
+function CollapsibleMessage({
+  content,
+  fromColorClass,
+}: {
+  content: string;
+  fromColorClass: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = content.length > 150;
+
+  if (!isLong) {
+    return (
+      <div className="prose prose-sm max-w-none">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="relative overflow-hidden transition-all duration-300"
+        style={{ maxHeight: expanded ? "2000px" : "5rem" }}
+      >
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
+        {!expanded && (
+          <div
+            className={`pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t ${fromColorClass} to-transparent`}
+          />
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="text-sm text-green-700 hover:text-green-900 font-medium cursor-pointer mt-1"
+      >
+        {expanded ? "Show less ▲" : "Read more ▼"}
+      </button>
+    </>
+  );
+}
+
 function StructuredDataRenderer({
   items,
   onSend,
@@ -633,9 +677,10 @@ export default function ChatPanel() {
                       : "bg-white text-gray-800 border border-gray-200"
                   }`}
                 >
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
+                  <CollapsibleMessage
+                    content={msg.content}
+                    fromColorClass={msg.error ? "from-red-50" : "from-white"}
+                  />
                   {msg.error && (
                     <button
                       type="button"
