@@ -62,6 +62,12 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
               >
                 Course Setup
               </Link>
+              <Link
+                href="/simulator"
+                className="text-sm font-medium text-gray-700 hover:text-green-700"
+              >
+                Simulator
+              </Link>
             </div>
           </div>
           <div className="flex items-center gap-4">
