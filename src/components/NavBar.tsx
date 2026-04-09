@@ -84,6 +84,11 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
       href: "/calendar?view=pipeline",
       match: (p, s) => p === "/calendar" && s.includes("view=pipeline"),
     },
+    {
+      label: "Live Tournaments",
+      href: "/tournaments/live",
+      match: (p) => p.startsWith("/tournaments/live"),
+    },
   ];
 
   const revenueItems: DropdownItem[] = [

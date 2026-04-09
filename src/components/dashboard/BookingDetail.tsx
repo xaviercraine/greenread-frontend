@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { callEdgeFunction } from "@/lib/edgeFunction";
 import type { Booking, PricingSnapshot } from "./BookingTable";
@@ -119,6 +120,7 @@ export default function BookingDetail({
   onCancelDraft,
   onRefresh,
 }: BookingDetailProps) {
+  const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -142,6 +144,36 @@ export default function BookingDetail({
     { template: string; content: string } | null
   >(null);
   const [emailCopied, setEmailCopied] = useState(false);
+
+  // T4: Tournament round status for Start Tournament / View Results buttons
+  const [tournamentRoundStatus, setTournamentRoundStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('tournament_rounds')
+        .select('status')
+        .eq('booking_id', booking.id)
+        .maybeSingle();
+      if (!cancelled && data) {
+        setTournamentRoundStatus(data.status);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [booking.id]);
+
+  const today = new Date().toISOString().split('T')[0];
+  const canStartTournament =
+    booking.status === 'confirmed' &&
+    booking.date <= today &&
+    !tournamentRoundStatus;
+  const canViewLiveDashboard =
+    tournamentRoundStatus === 'in_progress' ||
+    tournamentRoundStatus === 'paused' ||
+    tournamentRoundStatus === 'not_started';
+  const canViewResults = tournamentRoundStatus === 'completed';
 
   const canSendEmail =
     booking.status === "deposit_paid" ||
@@ -481,10 +513,10 @@ export default function BookingDetail({
     setRefundLoading(true);
 
     const eventDate = new Date(booking.date + "T00:00:00");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
     const daysUntilEvent = Math.ceil(
-      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (eventDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     try {
@@ -887,6 +919,33 @@ export default function BookingDetail({
                 >
                   Manage Foursomes
                 </Link>
+              )}
+              {/* T4: Start Tournament button */}
+              {canStartTournament && (
+                <button
+                  onClick={() => router.push(`/tournament/${booking.id}`)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-700 rounded-lg hover:bg-green-800"
+                >
+                  Start Tournament
+                </button>
+              )}
+              {/* T4: Live Dashboard button */}
+              {canViewLiveDashboard && (
+                <button
+                  onClick={() => router.push(`/tournament/${booking.id}`)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-700 rounded-lg hover:bg-green-800"
+                >
+                  Live Dashboard
+                </button>
+              )}
+              {/* T4: View Results button */}
+              {canViewResults && (
+                <button
+                  onClick={() => router.push(`/results/${booking.id}`)}
+                  className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200"
+                >
+                  View Results
+                </button>
               )}
               {canCancelBooking && (
                 <button
