@@ -226,8 +226,12 @@ export default function StarterSheetPage() {
     <>
       <style jsx global>{`
         @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print, nav, [data-chat-widget], .fixed { display: none !important; }
+          body { background: white !important; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          thead tr { background: white !important; }
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #333 !important; }
           @page { margin: 0.5in; }
         }
       `}</style>
