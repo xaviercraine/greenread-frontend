@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +12,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // If user arrives at /login after Stripe checkout (session_id or checkout param),
+  // and is already authenticated, redirect straight to dashboard.
+  useEffect(() => {
+    const hasCheckoutParam =
+      searchParams.get("session_id") || searchParams.get("checkout") === "success";
+    if (!hasCheckoutParam) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace("/");
+    });
+  }, [searchParams, supabase, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,5 +135,19 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

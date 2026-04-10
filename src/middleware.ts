@@ -43,12 +43,18 @@ export async function middleware(request: NextRequest) {
   const isPublicPortalPage =
     pathname.startsWith("/portal/") || pathname.startsWith("/register/");
 
+  // Post-checkout pages must be accessible after Stripe redirect (session may have expired).
+  const isPostCheckoutPage =
+    pathname.startsWith("/booking/success") ||
+    pathname.startsWith("/booking/cancel");
+
   if (
     !user &&
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/auth") &&
     !isPublicBookingPage &&
-    !isPublicPortalPage
+    !isPublicPortalPage &&
+    !isPostCheckoutPage
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
