@@ -682,6 +682,37 @@ export default function ChatPanel() {
   if (!user) return null;
   if (pathname?.startsWith("/book/new")) return null;
 
+  // Only show on GM (course-manager) routes
+  const gmPrefixes = [
+    "/dashboard",
+    "/tournaments",
+    "/simulator",
+    "/quote",
+    "/quick-quote",
+    "/organizers",
+    "/revenue",
+    "/pipeline",
+    "/course-setup",
+    "/bookings",
+    "/calendar",
+    "/scenarios",
+    "/onboarding",
+    "/book",
+    "/checkout",
+    "/booking",
+    "/foursomes",
+    "/portal",
+  ];
+  const publicSubRoutes = ["/tv", "/starter", "/card"];
+  const isTournamentGmRoute =
+    pathname?.startsWith("/tournament") &&
+    !publicSubRoutes.some((sub) => pathname?.includes(sub));
+  const isGmRoute =
+    pathname === "/" ||
+    gmPrefixes.some((prefix) => pathname?.startsWith(prefix)) ||
+    isTournamentGmRoute;
+  if (!isGmRoute) return null;
+
   const sendMessage = async (text: string) => {
     setLoading(true);
     try {
