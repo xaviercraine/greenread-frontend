@@ -937,7 +937,7 @@ export default function GMTournamentDashboard() {
                         <div style={{
                           height: '100%',
                           borderRadius: 2,
-                          background: paceColor(status.current_hole, kitchen.elapsed_minutes, round.minutes_per_hole),
+                          background: paceColor(status.current_hole, kitchen.elapsed_minutes, round?.minutes_per_hole ?? 15),
                           width: `${Math.min(100, (status.current_hole / 18) * 100)}%`,
                           transition: 'width 0.3s',
                         }} />
@@ -1164,6 +1164,7 @@ export default function GMTournamentDashboard() {
                     setSwapHandicap('');
                     // Fetch scorecard to get participant IDs
                     (async () => {
+                      if (!round) return;
                       const { data } = await supabase.rpc('get_scorecard', {
                         p_tournament_round_id: round.id,
                         p_foursome_id: entry.foursome_id,

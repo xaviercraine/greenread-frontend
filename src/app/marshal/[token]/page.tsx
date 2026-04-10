@@ -574,7 +574,7 @@ function MarshalApp({ session }: { session: MarshalSession }) {
     const queueId = offlineQueue.enqueue({
       foursome_id: foursome.foursome_id,
       current_hole: newHole,
-      current_nine_id: newNineId,
+      current_nine_id: newNineId ?? undefined,
       ...(newStatus ? { status: newStatus } : {}),
     });
 
