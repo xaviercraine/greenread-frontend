@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import type {
   CalendarBooking,
   DateBlock,
@@ -51,7 +50,6 @@ export default function DatePopover({
   onBlock,
   onUnblock,
 }: DatePopoverProps) {
-  const router = useRouter();
   const hasAnyAllocations =
     !!inventory &&
     (inventory.nines.allocated.length > 0 ||
@@ -109,11 +107,9 @@ export default function DatePopover({
                 const statusClass =
                   STATUS_STYLES[b.status] ?? "bg-gray-100 text-gray-800";
                 return (
-                  <button
+                  <div
                     key={b.id}
-                    type="button"
-                    onClick={() => router.push(`/?booking=${b.id}`)}
-                    className="w-full text-left rounded-md border border-gray-200 hover:border-green-500 hover:bg-green-50 p-3 transition"
+                    className="rounded-md border border-gray-200 p-3"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium text-gray-900">
@@ -128,7 +124,7 @@ export default function DatePopover({
                     <div className="text-xs text-gray-600 mt-1">
                       {b.player_count} players
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
