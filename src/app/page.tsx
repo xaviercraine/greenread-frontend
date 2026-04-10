@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +14,20 @@ import BookingDetail from "@/components/dashboard/BookingDetail";
 import EscalatedConversations from "@/components/dashboard/EscalatedConversations";
 
 export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+        </div>
+      }
+    >
+      <HomePageInner />
+    </Suspense>
+  );
+}
+
+function HomePageInner() {
   const { user, loading: authLoading, courseId } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
