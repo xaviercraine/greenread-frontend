@@ -300,7 +300,7 @@ function PricingCard({
             }}
           >
             <div className="font-semibold" style={{ color: ACCENT }}>
-              ✅ Draft Created — Booking ID: {draftId.slice(0, 8)}
+              Draft Created — Booking ID: {draftId.slice(0, 8)}
             </div>
             {(draft.date || draft.format) && (
               <div className="mt-1 text-[11px] text-gray-700">
@@ -364,7 +364,7 @@ function StructuredDataRenderer({
       className="text-xs text-gray-400 hover:text-green-700 cursor-pointer absolute top-2 right-2"
       aria-label="Edit selection"
     >
-      Edit ✏️
+      Edit
     </button>
   ) : null;
   return (
@@ -387,7 +387,7 @@ function StructuredDataRenderer({
             <StructuredCard key={idx}>
               {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
-                📅 {dates.length} available date{dates.length === 1 ? "" : "s"}
+                {dates.length} available date{dates.length === 1 ? "" : "s"}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {dates.map((d) => {
@@ -442,7 +442,7 @@ function StructuredDataRenderer({
             <StructuredCard key={idx}>
               {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
-                ⛳ Formats
+                Formats
               </div>
               <div className="space-y-1.5">
                 {formats.map((f) => (
@@ -506,7 +506,7 @@ function StructuredDataRenderer({
             <StructuredCard key={idx}>
               {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
-                🍽️ Food & Beverage Options
+                Food & Beverage Options
               </div>
               {fb.length > 0 && (
                 <div className="mb-2">
@@ -539,7 +539,7 @@ function StructuredDataRenderer({
             <StructuredCard key={idx}>
               {editButton}
               <div className="mb-2 font-semibold" style={{ color: ACCENT }}>
-                ➕ Add-ons
+                Add-ons
               </div>
               <div className="space-y-1.5">
                 {addons.map((a, i) => (

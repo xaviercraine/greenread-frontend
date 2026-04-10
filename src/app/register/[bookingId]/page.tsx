@@ -330,7 +330,7 @@ export default function ParticipantRegisterPage({
         {submitSuccess && (
           <section className="bg-green-50 border border-green-200 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-green-900 mb-2">
-              You&apos;re registered! 🎉
+              You&apos;re registered!
             </h2>
             <p className="text-sm text-green-800">
               See you at <strong>{course?.name}</strong> on{" "}

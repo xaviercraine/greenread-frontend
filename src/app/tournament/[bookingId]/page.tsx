@@ -133,9 +133,6 @@ type TabId = 'leaderboard' | 'course' | 'announcements' | 'contests' | 'roster';
 // ═══════════════════════════════════════════════════════════════
 
 function medal(pos: number): string {
-  if (pos === 1) return '🥇';
-  if (pos === 2) return '🥈';
-  if (pos === 3) return '🥉';
   return '';
 }
 

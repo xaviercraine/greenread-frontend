@@ -367,9 +367,6 @@ export default function PublicResultsPage() {
                       >
                         <td className="py-3 px-3 font-bold text-gray-900">
                           {positionLabel(entry, idx)}
-                          {entry.position === 1 && ' 🥇'}
-                          {entry.position === 2 && ' 🥈'}
-                          {entry.position === 3 && ' 🥉'}
                         </td>
                         <td className="py-3 px-3 text-gray-700">
                           #{entry.foursome_number}
