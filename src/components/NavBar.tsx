@@ -65,6 +65,11 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
 
   const tournamentsItems: DropdownItem[] = [
     {
+      label: "Live Tournaments",
+      href: "/tournaments/live",
+      match: (p) => p.startsWith("/tournaments/live"),
+    },
+    {
       label: "New Booking",
       href: "/book/new",
       match: (p) => p.startsWith("/book"),
@@ -83,11 +88,6 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
       label: "Pipeline",
       href: "/calendar?view=pipeline",
       match: (p, s) => p === "/calendar" && s.includes("view=pipeline"),
-    },
-    {
-      label: "Live Tournaments",
-      href: "/tournaments/live",
-      match: (p) => p.startsWith("/tournaments/live"),
     },
   ];
 
