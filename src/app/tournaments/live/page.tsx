@@ -169,7 +169,7 @@ export default function LiveTournamentsPage() {
       return (
         <button
           onClick={() => router.push(`/tournament/${row.booking_id}`)}
-          className="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition"
+          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
         >
           Live Dashboard
         </button>
@@ -189,7 +189,7 @@ export default function LiveTournamentsPage() {
     return (
       <button
         onClick={() => router.push(`/tournament/${row.booking_id}`)}
-        className="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition"
+        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
       >
         Start Tournament
       </button>
@@ -207,7 +207,7 @@ export default function LiveTournamentsPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
           </div>
         ) : rows.length === 0 ? (
           <div className="text-center py-16 text-gray-500">

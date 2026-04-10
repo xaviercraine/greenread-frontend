@@ -204,7 +204,7 @@ export default function StarterSheetPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700 mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4" />
           <p className="text-gray-500">Loading starter sheet…</p>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function StarterSheetPage() {
         <div className="no-print mb-4">
           <button
             onClick={() => window.print()}
-            className="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
           >
             Print Starter Sheet
           </button>

@@ -172,7 +172,7 @@ export default function PrintableScorecardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700 mx-auto" />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto" />
       </div>
     );
   }
@@ -204,7 +204,7 @@ export default function PrintableScorecardPage() {
         <div className="no-print mb-4">
           <button
             onClick={() => window.print()}
-            className="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
           >
             Print Scorecard
           </button>

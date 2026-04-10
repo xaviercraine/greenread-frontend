@@ -158,7 +158,7 @@ export default function FoursomeBuilderPage({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">Loading…</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
       </div>
     );
   }
@@ -173,7 +173,7 @@ export default function FoursomeBuilderPage({
           <p className="text-sm text-gray-700 mb-4">{loadError}</p>
           <Link
             href="/"
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="text-sm font-medium text-green-600 hover:underline"
           >
             ← Back to Dashboard
           </Link>
@@ -188,7 +188,7 @@ export default function FoursomeBuilderPage({
         <div className="mb-6">
           <Link
             href="/"
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="text-sm font-medium text-green-600 hover:underline"
           >
             ← Back to Dashboard
           </Link>
@@ -210,7 +210,7 @@ export default function FoursomeBuilderPage({
             <button
               onClick={() => runAutoAssign("random")}
               disabled={actionRunning !== null || participants.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {actionRunning === "random" && (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -220,7 +220,7 @@ export default function FoursomeBuilderPage({
             <button
               onClick={() => runAutoAssign("handicap")}
               disabled={actionRunning !== null || participants.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {actionRunning === "handicap" && (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
