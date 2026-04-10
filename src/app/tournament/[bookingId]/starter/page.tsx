@@ -257,6 +257,7 @@ export default function StarterSheetPage() {
         </div>
 
         {/* ── Starter table ── */}
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100">
@@ -312,6 +313,7 @@ export default function StarterSheetPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* ── Footer ── */}
         <div className="mt-6 text-center text-xs text-gray-400">

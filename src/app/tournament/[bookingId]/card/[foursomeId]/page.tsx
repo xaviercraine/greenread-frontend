@@ -242,6 +242,7 @@ export default function PrintableScorecardPage() {
           return (
             <div key={nine.nine_id} className="mb-6">
               <h3 className="font-bold text-sm text-gray-700 mb-1">{nine.nine_name}</h3>
+              <div className="overflow-x-auto">
               <table className="w-full border-collapse border-2 border-gray-900">
                 <thead>
                   <tr className="bg-gray-100">
@@ -284,6 +285,7 @@ export default function PrintableScorecardPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           );
         })}

@@ -386,6 +386,7 @@ export default function OrganizersPage() {
               No organizers yet.
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -491,6 +492,7 @@ export default function OrganizersPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </section>
 
@@ -522,6 +524,7 @@ export default function OrganizersPage() {
                 No registration links.
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -630,6 +633,7 @@ export default function OrganizersPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </section>

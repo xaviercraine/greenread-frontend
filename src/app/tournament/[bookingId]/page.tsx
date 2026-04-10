@@ -783,6 +783,7 @@ export default function GMTournamentDashboard() {
                       <p style={{ fontSize: 12, color: '#737373', marginBottom: 8, fontWeight: 600 }}>
                         Nine {nIdx + 1}
                       </p>
+                      <div style={{ overflowX: 'auto' }}>
                       <table style={{ ...s.table, fontSize: 13 }}>
                         <thead>
                           <tr>
@@ -828,6 +829,7 @@ export default function GMTournamentDashboard() {
                           </tr>
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   );
                 });
