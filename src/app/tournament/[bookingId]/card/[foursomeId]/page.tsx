@@ -172,7 +172,7 @@ export default function PrintableScorecardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto" />
       </div>
     );
   }
@@ -180,7 +180,7 @@ export default function PrintableScorecardPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white px-4">
-        <p className="text-gray-500">{error}</p>
+        <p className="text-sm text-red-700">{error}</p>
       </div>
     );
   }

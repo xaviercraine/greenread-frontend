@@ -31,6 +31,7 @@ export default function LiveTournamentsPage() {
 
   const [rows, setRows] = useState<TournamentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -123,7 +124,7 @@ export default function LiveTournamentsPage() {
 
         setRows(merged);
       } catch {
-        // Silently handle — empty state shown
+        setError('Failed to load tournaments.');
       }
       setLoading(false);
     }
@@ -205,9 +206,13 @@ export default function LiveTournamentsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Live Tournaments</h1>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 mb-4">{error}</div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
           </div>
         ) : rows.length === 0 ? (
           <div className="text-center py-16 text-gray-500">

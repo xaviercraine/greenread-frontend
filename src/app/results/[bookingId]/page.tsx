@@ -246,7 +246,7 @@ export default function PublicResultsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4" />
           <p className="text-gray-500">Loading tournament results…</p>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function PublicResultsPage() {
       <div className="min-h-screen flex items-center justify-center bg-white px-4">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Tournament Not Found</h1>
-          <p className="text-gray-500">{metaError || 'Unable to load tournament data.'}</p>
+          <p className="text-sm text-red-700">{metaError || 'Unable to load tournament data.'}</p>
         </div>
       </div>
     );
