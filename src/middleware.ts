@@ -2,6 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // Belt-and-suspenders: skip auth entirely for post-checkout routes
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/booking/success") || pathname.startsWith("/booking/cancel")) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -33,7 +39,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
   // Public booking pages: /book/<courseSlug> is accessible without auth.
   // /book/new still requires auth (organizer-side flow).
   const isPublicBookingPage =
