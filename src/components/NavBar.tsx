@@ -106,7 +106,7 @@ export default function NavBar({ escalatedCount = 0 }: NavBarProps) {
 
   const tournamentsActive = tournamentsItems.some((item) =>
     item.match(pathname, search)
-  );
+  ) || pathname.startsWith("/tournament") || pathname.startsWith("/foursomes") || pathname.startsWith("/results") || pathname.startsWith("/checkout");
   const revenueActive = revenueItems.some((item) => item.match(pathname, search));
 
   const dashboardActive = pathname === "/";
