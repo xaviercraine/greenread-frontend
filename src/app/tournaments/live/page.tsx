@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { createAuthedClient } from '@/lib/supabase-tournament';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/AuthProvider';
 
 /* ────────────────────────────────────────────
    Types
@@ -24,15 +25,23 @@ interface TournamentRow {
    ──────────────────────────────────────────── */
 
 export default function LiveTournamentsPage() {
-  const supabase = useMemo(() => createAuthedClient(), []);
+  const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [rows, setRows] = useState<TournamentRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+
     async function load() {
       try {
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
         const today = new Date().toISOString().split('T')[0];
 
         // 1. Confirmed bookings for today
@@ -45,17 +54,28 @@ export default function LiveTournamentsPage() {
         // 2. All bookings with tournament_rounds (any status)
         const { data: rounds } = await supabase
           .from('tournament_rounds')
-          .select('id, booking_id, status, bookings ( id, date, player_count, status, courses ( name ), tournament_formats ( name ) )')
+          .select('id, booking_id, status')
           .order('created_at', { ascending: false });
 
         // Merge into deduplicated list
         const seen = new Set<string>();
         const merged: TournamentRow[] = [];
 
-        // Add rounds first (they have richer state)
-        if (rounds) {
+        // Fetch bookings for rounds
+        if (rounds && rounds.length > 0) {
+          const roundBookingIds = [...new Set(rounds.map((r: any) => r.booking_id))];
+          const { data: roundBookings } = await supabase
+            .from('bookings')
+            .select('id, date, player_count, status, courses ( name ), tournament_formats ( name )')
+            .in('id', roundBookingIds);
+
+          const bookingMap = new Map<string, any>();
+          if (roundBookings) {
+            for (const b of roundBookings) bookingMap.set(b.id, b);
+          }
+
           for (const r of rounds) {
-            const b = (r as any).bookings;
+            const b = bookingMap.get((r as any).booking_id);
             if (!b) continue;
             seen.add(b.id);
             merged.push({
@@ -65,12 +85,11 @@ export default function LiveTournamentsPage() {
               format_name: (b as any).tournament_formats?.name ?? 'Tournament',
               course_name: (b as any).courses?.name ?? '',
               booking_status: b.status,
-              round_id: r.id,
-              round_status: r.status,
+              round_id: (r as any).id,
+              round_status: (r as any).status,
             });
           }
         }
-
         // Add today's confirmed bookings that don't have rounds yet
         if (todayBookings) {
           for (const b of todayBookings) {
@@ -109,7 +128,7 @@ export default function LiveTournamentsPage() {
       setLoading(false);
     }
     load();
-  }, [supabase]);
+  }, [supabase, user, authLoading]);
 
   /* ── Helpers ── */
   const formatDate = (d: string) => {

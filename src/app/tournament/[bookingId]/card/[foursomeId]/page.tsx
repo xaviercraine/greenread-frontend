@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { createAuthedClient } from '@/lib/supabase-tournament';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/AuthProvider';
 
 /* ────────────────────────────────────────────
    Types
@@ -35,7 +36,8 @@ export default function PrintableScorecardPage() {
   const bookingId = params.bookingId as string;
   const foursomeId = params.foursomeId as string;
 
-  const supabase = useMemo(() => createAuthedClient(), []);
+  const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
 
   const [courseName, setCourseName] = useState('');
   const [tournamentDate, setTournamentDate] = useState('');
@@ -49,7 +51,14 @@ export default function PrintableScorecardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+
     async function load() {
+      if (!user) {
+        setError('Not authenticated.');
+        setLoading(false);
+        return;
+      }
       try {
         // 1. Booking metadata
         const { data: booking } = await supabase
@@ -84,16 +93,15 @@ export default function PrintableScorecardPage() {
         // 3. Players
         const { data: fpData } = await supabase
           .from('foursome_participants')
-          .select('position, participants ( name, handicap )')
-          .eq('foursome_id', foursomeId)
-          .order('position');
+          .select('participant_id, participants ( name, handicap )')
+          .eq('foursome_id', foursomeId);
 
         if (fpData) {
           setPlayers(
-            fpData.map((fp: any) => ({
+            fpData.map((fp: any, idx: number) => ({
               name: fp.participants?.name ?? 'Unknown',
               handicap: fp.participants?.handicap ?? 0,
-              position: fp.position,
+              position: idx + 1,
             }))
           );
         }
@@ -146,7 +154,7 @@ export default function PrintableScorecardPage() {
       }
     }
     load();
-  }, [bookingId, foursomeId, supabase]);
+  }, [bookingId, foursomeId, supabase, user, authLoading]);
 
   /* ── Helpers ── */
   const formatDate = (d: string) => {

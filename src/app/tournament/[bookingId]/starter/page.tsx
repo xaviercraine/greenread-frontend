@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { createAuthedClient } from '@/lib/supabase-tournament';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/AuthProvider';
 import QRCode from 'qrcode';
 
 /* ────────────────────────────────────────────
@@ -13,7 +14,6 @@ interface PlayerInfo {
   name: string;
   handicap: number;
   position: number;
-  registration_token: string | null;
 }
 
 interface FoursomeRow {
@@ -42,7 +42,8 @@ export default function StarterSheetPage() {
   const params = useParams();
   const bookingId = params.bookingId as string;
 
-  const supabase = useMemo(() => createAuthedClient(), []);
+  const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
 
   const [meta, setMeta] = useState<BookingMeta | null>(null);
   const [foursomes, setFoursomes] = useState<FoursomeRow[]>([]);
@@ -50,7 +51,14 @@ export default function StarterSheetPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+
     async function load() {
+      if (!user) {
+        setError('Not authenticated.');
+        setLoading(false);
+        return;
+      }
       try {
         // 1. Booking metadata
         const { data: booking, error: bErr } = await supabase
@@ -76,7 +84,7 @@ export default function StarterSheetPage() {
         // 2. Foursomes
         const { data: fsData, error: fsErr } = await supabase
           .from('foursomes')
-          .select('id, foursome_number, cart_number, starting_hole, starting_nine_id')
+          .select('id, foursome_number, cart_number, starting_hole')
           .eq('booking_id', bookingId)
           .order('starting_hole');
 
@@ -86,16 +94,28 @@ export default function StarterSheetPage() {
           return;
         }
 
-        // 3. Nine names (for display)
-        const nineIds = [...new Set(fsData.map(f => f.starting_nine_id).filter(Boolean))];
-        const nineNames: Record<string, string> = {};
-        if (nineIds.length > 0) {
-          const { data: nines } = await supabase
-            .from('nines')
-            .select('id, name')
-            .in('id', nineIds);
-          if (nines) {
-            for (const n of nines) nineNames[n.id] = n.name;
+        // 3. Nine names — derive from booking_nines + hole_pars
+        const { data: bookingNines } = await supabase
+          .from('booking_nines')
+          .select('nine_id, nines ( id, name )')
+          .eq('booking_id', bookingId);
+
+        // Map starting_hole → nine name via hole_pars
+        const holeToNineName: Record<number, string> = {};
+        if (bookingNines && bookingNines.length > 0) {
+          const nineIds = bookingNines.map((bn: any) => bn.nine_id);
+          const { data: holePars } = await supabase
+            .from('hole_pars')
+            .select('nine_id, hole_number')
+            .in('nine_id', nineIds);
+          if (holePars) {
+            const nineNameMap: Record<string, string> = {};
+            for (const bn of bookingNines) {
+              nineNameMap[bn.nine_id] = (bn as any).nines?.name ?? 'Nine';
+            }
+            for (const hp of holePars) {
+              holeToNineName[hp.hole_number] = nineNameMap[hp.nine_id] ?? '';
+            }
           }
         }
 
@@ -103,9 +123,8 @@ export default function StarterSheetPage() {
         const foursomeIds = fsData.map(f => f.id);
         const { data: fpData } = await supabase
           .from('foursome_participants')
-          .select('foursome_id, participant_id, position, participants ( id, name, handicap, registration_token )')
-          .in('foursome_id', foursomeIds)
-          .order('position');
+          .select('foursome_id, participant_id, participants ( id, name, handicap )')
+          .in('foursome_id', foursomeIds);
 
         const participantsByFoursome: Record<string, PlayerInfo[]> = {};
         if (fpData) {
@@ -113,31 +132,33 @@ export default function StarterSheetPage() {
             const p = (fp as any).participants;
             if (!p) continue;
             if (!participantsByFoursome[fp.foursome_id]) participantsByFoursome[fp.foursome_id] = [];
+            const pos = participantsByFoursome[fp.foursome_id].length + 1;
             participantsByFoursome[fp.foursome_id].push({
               name: p.name,
               handicap: p.handicap ?? 0,
-              position: fp.position,
-              registration_token: p.registration_token ?? null,
+              position: pos,
             });
-          }
-          // Sort each by position
-          for (const key of Object.keys(participantsByFoursome)) {
-            participantsByFoursome[key].sort((a, b) => a.position - b.position);
           }
         }
 
-        // 5. Build rows + QR codes
+        // 5. Registration token for QR codes (one per booking)
+        const { data: tokenRow } = await supabase
+          .from('registration_tokens')
+          .select('token')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+        const regToken = tokenRow?.token ?? null;
+
+        // 6. Build rows + QR codes
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         const rows: FoursomeRow[] = [];
 
         for (const f of fsData) {
           const players = participantsByFoursome[f.id] || [];
-          // QR code links to first participant's registration token
-          const firstToken = players.find(p => p.registration_token)?.registration_token;
           let qrDataUrl: string | null = null;
-          if (firstToken && baseUrl) {
+          if (regToken && baseUrl) {
             try {
-              qrDataUrl = await QRCode.toDataURL(`${baseUrl}/score/${firstToken}`, {
+              qrDataUrl = await QRCode.toDataURL(`${baseUrl}/score/${regToken}`, {
                 width: 80,
                 margin: 1,
                 color: { dark: '#000000', light: '#ffffff' },
@@ -150,7 +171,7 @@ export default function StarterSheetPage() {
             foursome_number: f.foursome_number,
             cart_number: f.cart_number,
             starting_hole: f.starting_hole,
-            starting_nine_name: f.starting_nine_id ? (nineNames[f.starting_nine_id] || 'Nine') : '',
+            starting_nine_name: holeToNineName[f.starting_hole] ?? '',
             players,
             qrDataUrl,
           });
@@ -164,7 +185,7 @@ export default function StarterSheetPage() {
       }
     }
     load();
-  }, [bookingId, supabase]);
+  }, [bookingId, supabase, user, authLoading]);
 
   /* ── Helpers ── */
   const formatDate = (d: string) => {
