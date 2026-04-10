@@ -741,7 +741,7 @@ export default function GMTournamentDashboard() {
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
               Scorecard — Foursome #{entry?.foursome_number ?? '?'}
             </h2>
-            <button onClick={() => setSelectedFoursomeId(null)} style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: 20 }}>✕</button>
+            <button onClick={() => setSelectedFoursomeId(null)} aria-label="Close scorecard" style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: 20 }}>✕</button>
           </div>
 
           {scorecardLoading && <p style={{ color: '#737373' }}>Loading scorecard…</p>}

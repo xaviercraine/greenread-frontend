@@ -99,8 +99,6 @@ export default function ScenariosPage() {
         .eq("course_id", courseId)
         .limit(1);
       if (fetchErr) throw fetchErr;
-      console.log("pricing_rules sample row:", data);
-
       const byType = new Map<string, number>();
       for (const row of data ?? []) {
         if (row?.rule_type != null) {
